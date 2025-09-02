@@ -88,6 +88,9 @@
 
 extern STATE_FILE StateFile;
 
+#define OPEN_ATTEMPTS 10
+#define OPEN_SLEEP_INTERVAL 1000
+
 //
 //
 //  F U N C T I O N   P R O T O T Y P E S
@@ -108,10 +111,40 @@ sf_FIST_delay_on_write();
 
 
 extern int
+is_drbd_device(
+      const char *path)
+{
+    static const int drbd_major = 147;
+
+    struct stat stats;
+    if (stat(path, &stats) == -1)
+    {
+        return -1;
+    }
+    return S_ISBLK(stats.st_mode) && major(stats.st_rdev) == drbd_major;
+}
+
+extern int
 sf_open(
     char *path)
 {
-    return open(path, (O_RDWR | O_DIRECT));
+    int fd = open(path, (O_RDWR | O_DIRECT));
+    if (fd < 0 && errno == EROFS && is_drbd_device(path))
+    {
+        int attempt;
+        for (attempt = 0; attempt < OPEN_ATTEMPTS; ++attempt)
+        {
+            if ((fd = open(path, (O_RDWR | O_DIRECT)) < 0) && errno == EROFS)
+            {
+                sf_sleep(OPEN_SLEEP_INTERVAL);
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+    return fd;
 }
 
 extern int

@@ -73,6 +73,9 @@
 //
 //
 
+extern int
+is_drbd_device(
+      const char *path);
 
 //
 //
@@ -122,8 +125,11 @@ static struct {
 //  Internal data for this module
 //
 
+#define SFVAR_FLAG_DRBD (1 << 0)
+
 static struct {
     int                 sfdesc;                 //  File descriptor for the State-File
+    int                 flags;
     MTC_BOOLEAN         terminate;
     MTC_U32             sequence;
     pthread_t sf_thread;
@@ -151,6 +157,19 @@ static struct {
         MTC_S32 min;
     } readlatency, writelatency;
 } sfvar = { 0 };
+
+static inline int open_desc()
+{
+    return sfvar.flags & SFVAR_FLAG_DRBD ? sf_open(_sf_path) : sfvar.sfdesc;
+}
+
+static inline void close_desc(int sfdesc)
+{
+    if (sfvar.flags & SFVAR_FLAG_DRBD)
+    {
+        sf_close(sfdesc);
+    }
+}
 
 //  lock
 #define sf_lock()   ((void)pthread_spin_lock(&sfvar.lock))
@@ -303,6 +322,7 @@ sf_initialize0()
     //  Initialize sfvar
 
     sfvar.sfdesc = -1,
+    sfvar.flags = 0,
     sfvar.watchdog = INVALID_WATCHDOG_HANDLE_VALUE,
     sfvar.terminate = FALSE,
 
@@ -407,13 +427,23 @@ sf_initialize0()
 
     //  Open the State-File
 
-    if ((sfvar.sfdesc = sf_open(_sf_path)) < 0)
+    const int sfdesc = sf_open(_sf_path);
+    if (sfdesc < 0)
     {
-        sfvar.sfdesc = -1;
         status = MTC_ERROR_SF_OPEN;
         log_internal(MTC_LOG_ERR,
-                    "SF: cannot open the State-File %s.\n", _sf_path);
+                    "SF: cannot open the State-File %s. (sys %d)\n", _sf_path, errno);
         goto error;
+    }
+
+    if (is_drbd_device(_sf_path))
+    {
+        sfvar.flags |= SFVAR_FLAG_DRBD;
+        sf_close(sfdesc);
+    }
+    else
+    {
+        sfvar.sfdesc = sfdesc;
     }
 
     return MTC_SUCCESS;
@@ -588,7 +618,9 @@ sfthread(
             case    MTC_ERROR_SF_PENDING_WRITE:
                 if ((status = FIST_global_write()) == MTC_SUCCESS)
                 {
-                    status = sf_writeglobal(sfvar.sfdesc, &StateFile.global);
+                    const int sfdesc = open_desc();
+                    status = sf_writeglobal(sfdesc, &StateFile.global);
+                    close_desc(sfdesc);
                 }
 
                 if (status != MTC_SUCCESS && print_status != PSTATUS_ERROR)
@@ -661,7 +693,9 @@ readsf()
         {
             if ((iostatus.global_section = FIST_global_read()) == MTC_SUCCESS)
             {
-                iostatus.global_section = sf_readglobal(sfvar.sfdesc, &StateFile.global, _gen_UUID);
+                const int sfdesc = open_desc();
+                iostatus.global_section = sf_readglobal(sfdesc, &StateFile.global, _gen_UUID);
+                close_desc(sfdesc);
             }
         }
 
@@ -671,8 +705,10 @@ readsf()
             {
                 if ((iostatus.host_section[host_index] = FIST_hostspecific_read()) == MTC_SUCCESS)
                 {
+                    const int sfdesc = open_desc();
                     iostatus.host_section[host_index] =
-                            sf_readhostspecific(sfvar.sfdesc, host_index, &StateFile.host[host_index]);
+                            sf_readhostspecific(sfdesc, host_index, &StateFile.host[host_index]);
+                    close_desc(sfdesc);
                 }
 
                 if (iostatus.host_section[host_index] == MTC_SUCCESS)
@@ -979,7 +1015,9 @@ write_hostspecific()
 
     if ((status = FIST_hostspecific_write()) == MTC_SUCCESS)
     {
-        status = sf_writehostspecific(sfvar.sfdesc, _my_index, phost);
+        const int sfdesc = open_desc();
+        status = sf_writehostspecific(sfdesc, _my_index, phost);
+        close_desc(sfdesc);
     }
 
     if (status != MTC_SUCCESS)
