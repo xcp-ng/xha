@@ -45,6 +45,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/sysmacros.h>
 #include <fcntl.h>
 
 //
@@ -110,31 +111,61 @@ sf_FIST_delay_on_write();
 //
 
 
-extern int
-is_drbd_device(
+typedef enum {
+    DEVICE_TYPE_ERROR = -1,
+    DEVICE_TYPE_NORMAL = 0,
+    DEVICE_TYPE_DRBD = 1,
+    DEVICE_TYPE_NBD = 2
+} DEVICE_TYPE;
+
+static DEVICE_TYPE
+get_device_type(
       const char *path)
 {
     static const int drbd_major = 147;
+    static const int nbd_major = 43;
 
     struct stat stats;
     if (stat(path, &stats) == -1)
     {
-        return -1;
+        return DEVICE_TYPE_ERROR;
     }
-    return S_ISBLK(stats.st_mode) && major(stats.st_rdev) == drbd_major;
+    if (S_ISBLK(stats.st_mode))
+    {
+        const int dev_major = major(stats.st_rdev);
+        if (dev_major == drbd_major)
+            return DEVICE_TYPE_DRBD;
+        if (dev_major == nbd_major)
+            return DEVICE_TYPE_NBD;
+    }
+    return DEVICE_TYPE_NORMAL;
+}
+
+extern int
+is_drbd_device(
+      const char *path)
+{
+    return get_device_type(path) == DEVICE_TYPE_DRBD;
 }
 
 extern int
 sf_open(
     char *path)
 {
-    int fd = open(path, (O_RDWR | O_DIRECT));
-    if (fd < 0 && errno == EROFS && is_drbd_device(path))
+    const DEVICE_TYPE device_type = get_device_type(path);
+    if (device_type == DEVICE_TYPE_ERROR)
+    {
+        return -1;
+    }
+
+    const int flags = O_RDWR | O_DIRECT | (device_type == DEVICE_TYPE_NBD ? O_SYNC : 0);
+    int fd = open(path, flags);
+    if (fd < 0 && errno == EROFS && device_type == DEVICE_TYPE_DRBD)
     {
         int attempt;
         for (attempt = 0; attempt < OPEN_ATTEMPTS; ++attempt)
         {
-            if ((fd = open(path, (O_RDWR | O_DIRECT)) < 0) && errno == EROFS)
+            if ((fd = open(path, flags) < 0) && errno == EROFS)
             {
                 sf_sleep(OPEN_SLEEP_INTERVAL);
             }
