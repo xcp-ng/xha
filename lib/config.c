@@ -67,6 +67,14 @@
 
 
 #define VALID_VERSION_STRING "1.0"
+typedef MTC_S32 (*XmlConverter)(xmlDocPtr, xmlNodePtr, void*);
+struct xmlTagParser
+{
+    char *name;
+    void *value;
+    XmlConverter converter;
+    MTC_BOOLEAN is_deprecated;
+};
 
 
 //
@@ -512,6 +520,24 @@ walk_host_config(
 //--
 //
 
+static MTC_S32 xml_to_long(xmlDocPtr doc, xmlNodePtr node, void* config){
+    char *endptr;
+    xmlChar *txt = xmlNodeListGetString(doc, node->children, 1);
+    if (txt == NULL) 
+    {
+        log_internal(MTC_LOG_ERR, "%s: failed to get %s\n", __func__, node->name);
+        return MTC_ERROR_CF_INVALID_FORMAT;
+    }
+    *(MTC_U32*)config = strtol((char *) txt, &endptr, 10);
+    if (*endptr != '\0') 
+    {
+        log_internal(MTC_LOG_ERR, "%s: invalid %s %s\n", __func__, node->name, txt);
+        xmlFree(txt);
+        return MTC_ERROR_CF_INVALID_FORMAT;
+    }
+    xmlFree(txt);
+    return MTC_SUCCESS;
+}
 
 static MTC_S32 
 walk_parameters_config(
@@ -519,63 +545,59 @@ walk_parameters_config(
     xmlNodePtr cur,
     HA_CONFIG *c) 
 {
-    xmlNodePtr sub;
-    xmlChar *txt;
-    char *endptr;
-    MTC_U32 i;
+    XmlConverter converter = NULL;
 
     //
     // Name and value pair
     //
 
-    struct 
-    {
-        char *name;
-        MTC_U32 *value;
-    } 
-    tbl[] = 
-        {{"HeartbeatInterval", &(c->common.heartbeat_interval)},
-         {"HeartbeatTimeout", &(c->common.heartbeat_timeout)},
-         {"StateFileInterval", &(c->common.statefile_interval)},
-         {"StateFileTimeout", &(c->common.statefile_timeout)},
-         {"HeartbeatWatchdogTimeout",&(c->common.heartbeat_watchdog_timeout)},
-         {"StateFileWatchdogTimeout",&(c->common.statefile_watchdog_timeout)},
-         {"BootJoinTimeout",&(c->common.boot_join_timeout)},
-         {"EnableJoinTimeout",&(c->common.enable_join_timeout)},
-         {"XapiHealthCheckInterval",&(c->common.xapi_healthcheck_interval)},
-         {"XapiHealthCheckTimeout",&(c->common.xapi_healthcheck_timeout)},
-         {"XapiRestartAttempts",&(c->common.xapi_restart_attempts)},
-         {"XapiRestartTimeout",&(c->common.xapi_restart_timeout)},
-         {"XapiLicenseCheckTimeout",&(c->common.xapi_licensecheck_timeout)},
-         {NULL, NULL}};
-
+    struct xmlTagParser tags[] = 
+        {{"HeartbeatInterval", &(c->common.heartbeat_interval), NULL, FALSE},
+         {"HeartbeatTimeout", &(c->common.heartbeat_timeout), NULL, FALSE},
+         {"StateFileInterval", &(c->common.statefile_interval), NULL, TRUE},
+         {"StateFileTimeout", &(c->common.statefile_timeout), NULL, TRUE},
+         {"HeartbeatWatchdogTimeout", &(c->common.heartbeat_watchdog_timeout), NULL, FALSE},
+         {"StateFileWatchdogTimeout", &(c->common.statefile_watchdog_timeout), NULL, TRUE},
+         {"BootJoinTimeout", &(c->common.boot_join_timeout), NULL, FALSE},
+         {"EnableJoinTimeout", &(c->common.enable_join_timeout), NULL, FALSE},
+         {"XapiHealthCheckInterval", &(c->common.xapi_healthcheck_interval), NULL, FALSE},
+         {"XapiHealthCheckTimeout", &(c->common.xapi_healthcheck_timeout), NULL, FALSE},
+         {"XapiRestartAttempts", &(c->common.xapi_restart_attempts), NULL, FALSE},
+         {"XapiRestartTimeout", &(c->common.xapi_restart_timeout), NULL, FALSE},
+         {"XapiLicenseCheckTimeout", &(c->common.xapi_licensecheck_timeout), NULL, FALSE},
+         {NULL, NULL, NULL, FALSE}};
 
     //
     // Walk XML
     //
 
-    for (sub = cur->children; sub != NULL; sub = sub->next) 
+    for (xmlNodePtr sub = cur->children; sub != NULL; sub = sub->next) 
     {
-        for (i = 0; tbl[i].name != NULL; i++) 
+        for (MTC_U32 i = 0; tags[i].name != NULL; i++) 
         {
-            if (xmlStrcmp(sub->name, (const xmlChar *) tbl[i].name) == 0) 
+            if (xmlStrcmp(sub->name, (const xmlChar *) tags[i].name) != 0) 
             {
-                txt = xmlNodeListGetString(doc, sub->children, 1);
-                if (txt == NULL) 
-                {
-                    log_internal(MTC_LOG_ERR, "%s: failed to get %s\n", __func__, tbl[i].name);
-                    return MTC_ERROR_CF_INVALID_FORMAT;
-                }
-                *tbl[i].value = strtol((char *) txt, &endptr, 10);
-                if (*endptr != '\0') 
-                {
-                    log_internal(MTC_LOG_ERR, "%s: invalid %s %s\n", __func__, tbl[i].name, txt);
-                    xmlFree(txt);
-                    return MTC_ERROR_CF_INVALID_FORMAT;
-                }
-                xmlFree(txt);
-                break;
+                continue;
             }
+
+            if (tags[i].is_deprecated)
+            {
+                log_internal(MTC_LOG_WARNING, "Deprecated config option %s\n", sub->name);
+            }
+
+            converter = tags[i].converter;
+            if (converter == NULL)
+            {
+                converter = xml_to_long;
+            }
+
+            MTC_S32 converter_errror = converter(doc, sub, (void*) tags[i].value);
+            if (converter_errror != MTC_SUCCESS)
+            {
+                return converter_errror;
+            }
+
+            break;
         }
     }
     return MTC_SUCCESS; // SUCCESS
