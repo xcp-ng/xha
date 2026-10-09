@@ -67,13 +67,14 @@
 
 
 #define VALID_VERSION_STRING "1.0"
-typedef MTC_S32 (*XmlConverter)(xmlDocPtr, xmlNodePtr, void*);
+typedef MTC_S32 (*XmlConverter)(xmlDocPtr, xmlNodePtr, void*, void*);
 struct xmlTagParser
 {
     char *name;
     void *value;
-    XmlConverter converter;
     MTC_BOOLEAN is_deprecated;
+    XmlConverter converter;
+    void* converter_args;
 };
 
 
@@ -82,7 +83,187 @@ struct xmlTagParser
 //  F U N C T I O N   D E F I N I T I O N S
 //
 //
+//
 
+//++
+//
+//  NAME:
+//
+//      uuid_strcpy
+//
+//  DESCRIPTION:
+//
+//      copy uuid string removing '-'
+//      check size
+//      check charactor
+//      output does not terminate with '\0'
+//
+//  FORMAL PARAMETERS:
+//
+//      packed_uuid - output string
+//      uuid - input string
+//
+//  RETURN VALUE:
+//
+//      0: success
+//      -1: failed (too long or too short)
+//
+//  ENVIRONMENT:
+//
+//      None
+//
+//--
+//
+//
+
+
+static int 
+uuid_strcpy(
+    char *packed_uuid,
+    char *uuid)
+{
+    char *src;
+    MTC_U32 count;
+
+    count = 0;
+    for (src = uuid; *src; src++) 
+    {
+        if (*src == '-') continue;
+        if (count < MTC_UUID_SIZE) 
+        {
+            packed_uuid[count] = *src;
+            count++;
+        }
+        else
+        {
+            // too long uuid
+            return MTC_ERROR_CF_INVALID_FORMAT;
+        }
+    }
+    if (count < MTC_UUID_SIZE) 
+    {
+        // too short uuid
+        for (; count < MTC_UUID_SIZE; count++)
+        {
+            packed_uuid[count] = '\0';
+        }
+        return MTC_ERROR_CF_INVALID_FORMAT;
+    }
+    return MTC_SUCCESS;
+}
+
+static MTC_S32 xml_to_long(xmlDocPtr doc, xmlNodePtr node, void* config, void* args)
+{
+    char *endptr;
+    xmlChar *txt = xmlNodeListGetString(doc, node->children, 1);
+    if (txt == NULL) 
+    {
+        log_internal(MTC_LOG_ERR, "%s: failed to get %s\n", __func__, node->name);
+        return MTC_ERROR_CF_INVALID_FORMAT;
+    }
+    *(MTC_U32*)config = strtol((char *) txt, &endptr, 10);
+    if (*endptr != '\0') 
+    {
+        log_internal(MTC_LOG_ERR, "%s: invalid %s %s\n", __func__, node->name, txt);
+        xmlFree(txt);
+        return MTC_ERROR_CF_INVALID_FORMAT;
+    }
+    xmlFree(txt);
+    log_internal(MTC_LOG_DEBUG, "%s=%d\n", node->name, *(MTC_U32*) config);
+    return MTC_SUCCESS;
+}
+
+struct xmlToStringArg
+{
+    size_t max_length;
+};
+
+static MTC_S32 xml_to_string(xmlDocPtr doc, xmlNodePtr node, void* config, void* args)
+{
+    struct xmlToStringArg* arg = (struct xmlToStringArg*) args;
+    xmlChar *txt = xmlNodeListGetString(doc, node->children, 1);
+    if (txt == NULL) 
+    {
+        log_internal(MTC_LOG_ERR, "%s: failed to get %s\n", __func__, node->name);
+        return MTC_ERROR_CF_INVALID_FORMAT;
+    }
+
+    strncpy((char*) config, (char*) txt, arg->max_length - 1);
+    ((char*) config)[arg->max_length - 1] = '\0';
+    xmlFree(txt);
+    log_internal(MTC_LOG_DEBUG, "%s=%s\n", node->name, (char*) config);
+    return MTC_SUCCESS;
+}
+
+struct xmlToHostnameArg
+{
+    MTC_U32 len;
+    HA_CONFIG_HOST_INFO *hosts;
+};
+
+static MTC_S32 xml_to_hostname(xmlDocPtr doc, xmlNodePtr node, void* config, void* args)
+{
+    struct xmlToHostnameArg* hostnames = (struct xmlToHostnameArg*) args;
+    char host_id[MTC_UUID_SIZE];
+    xmlChar *txt = xmlNodeListGetString(doc, node->children, 1);
+    if (txt == NULL) 
+    {
+        log_internal(MTC_LOG_ERR, "%s: failed to get %s\n", __func__, node->name);
+        return MTC_ERROR_CF_INVALID_FORMAT;
+    }
+    if (uuid_strcpy(host_id, (char *) txt) != MTC_SUCCESS)
+    {
+        log_internal(MTC_LOG_ERR, "%s: invalid HostID %s\n", __func__, txt);
+        xmlFree(txt);
+        return MTC_ERROR_CF_INVALID_FORMAT;
+    }
+    for (MTC_U32 i = 0; i < hostnames->len; i++) 
+    {
+        if (!strncmp(host_id, hostnames->hosts[i].host_id, MTC_UUID_SIZE)) 
+        {
+            *(MTC_U32*)config = i;
+            xmlFree(txt);
+            log_internal(MTC_LOG_DEBUG, "%s=%d from %s\n", node->name, *(MTC_U32*)config, hostnames->hosts[i].host_id);
+            return MTC_SUCCESS;
+        }
+    }
+    log_internal(MTC_LOG_ERR, "%s: localhost %s is not found in host list\n", __func__, txt);
+    xmlFree(txt);
+    return MTC_ERROR_CF_INVALID_FORMAT;
+}
+
+static MTC_S32 walk_tags(xmlDocPtr doc, xmlNodePtr cur, struct xmlTagParser* tags) {
+
+    for (xmlNodePtr sub = cur->children; sub != NULL; sub = sub->next) 
+    {
+        for (MTC_U32 i = 0; tags[i].name != NULL; i++) 
+        {
+            if (xmlStrcmp(sub->name, (const xmlChar *) tags[i].name) != 0) 
+            {
+                continue;
+            }
+
+            if (tags[i].converter == NULL)
+            {
+                log_internal(MTC_LOG_CRIT, "Config option %s can not be converted\n", sub->name);
+                return MTC_ERROR_SYSTEM_LEVEL_FAILURE;
+            }
+
+            if (tags[i].is_deprecated)
+            {
+                log_internal(MTC_LOG_WARNING, "Deprecated config option %s\n", sub->name);
+            }
+
+            MTC_S32 converter_errror = tags[i].converter(doc, sub, (void*) tags[i].value, tags[i].converter_args);
+            if (converter_errror != MTC_SUCCESS)
+            {
+                return converter_errror;
+            }
+            break;
+        }
+    }
+    return MTC_SUCCESS;
+}
 
 //
 //++
@@ -236,74 +417,6 @@ valid_config(
     }
 
     return TRUE;
-}
-
-//
-//++
-//
-//  NAME:
-//
-//      uuid_strcpy
-//
-//  DESCRIPTION:
-//
-//      copy uuid string removing '-'
-//      check size
-//      check charactor
-//      output does not terminate with '\0'
-//
-//  FORMAL PARAMETERS:
-//
-//      packed_uuid - output string
-//      uuid - input string
-//
-//  RETURN VALUE:
-//
-//      0: success
-//      -1: failed (too long or too short)
-//
-//  ENVIRONMENT:
-//
-//      None
-//
-//--
-//
-//
-
-
-static int 
-uuid_strcpy(
-    char *packed_uuid,
-    char *uuid)
-{
-    char *src;
-    MTC_U32 count;
-
-    count = 0;
-    for (src = uuid; *src; src++) 
-    {
-        if (*src == '-') continue;
-        if (count < MTC_UUID_SIZE) 
-        {
-            packed_uuid[count] = *src;
-            count++;
-        }
-        else
-        {
-            // too long uuid
-            return MTC_ERROR_CF_INVALID_FORMAT;
-        }
-    }
-    if (count < MTC_UUID_SIZE) 
-    {
-        // too short uuid
-        for (; count < MTC_UUID_SIZE; count++)
-        {
-            packed_uuid[count] = '\0';
-        }
-        return MTC_ERROR_CF_INVALID_FORMAT;
-    }
-    return MTC_SUCCESS;
 }
 
 //
@@ -520,87 +633,30 @@ walk_host_config(
 //--
 //
 
-static MTC_S32 xml_to_long(xmlDocPtr doc, xmlNodePtr node, void* config){
-    char *endptr;
-    xmlChar *txt = xmlNodeListGetString(doc, node->children, 1);
-    if (txt == NULL) 
-    {
-        log_internal(MTC_LOG_ERR, "%s: failed to get %s\n", __func__, node->name);
-        return MTC_ERROR_CF_INVALID_FORMAT;
-    }
-    *(MTC_U32*)config = strtol((char *) txt, &endptr, 10);
-    if (*endptr != '\0') 
-    {
-        log_internal(MTC_LOG_ERR, "%s: invalid %s %s\n", __func__, node->name, txt);
-        xmlFree(txt);
-        return MTC_ERROR_CF_INVALID_FORMAT;
-    }
-    xmlFree(txt);
-    return MTC_SUCCESS;
-}
-
 static MTC_S32 
 walk_parameters_config(
     xmlDocPtr doc,
     xmlNodePtr cur,
     HA_CONFIG *c) 
 {
-    XmlConverter converter = NULL;
-
-    //
-    // Name and value pair
-    //
-
     struct xmlTagParser tags[] = 
-        {{"HeartbeatInterval", &(c->common.heartbeat_interval), NULL, FALSE},
-         {"HeartbeatTimeout", &(c->common.heartbeat_timeout), NULL, FALSE},
-         {"StateFileInterval", &(c->common.statefile_interval), NULL, TRUE},
-         {"StateFileTimeout", &(c->common.statefile_timeout), NULL, TRUE},
-         {"HeartbeatWatchdogTimeout", &(c->common.heartbeat_watchdog_timeout), NULL, FALSE},
-         {"StateFileWatchdogTimeout", &(c->common.statefile_watchdog_timeout), NULL, TRUE},
-         {"BootJoinTimeout", &(c->common.boot_join_timeout), NULL, FALSE},
-         {"EnableJoinTimeout", &(c->common.enable_join_timeout), NULL, FALSE},
-         {"XapiHealthCheckInterval", &(c->common.xapi_healthcheck_interval), NULL, FALSE},
-         {"XapiHealthCheckTimeout", &(c->common.xapi_healthcheck_timeout), NULL, FALSE},
-         {"XapiRestartAttempts", &(c->common.xapi_restart_attempts), NULL, FALSE},
-         {"XapiRestartTimeout", &(c->common.xapi_restart_timeout), NULL, FALSE},
-         {"XapiLicenseCheckTimeout", &(c->common.xapi_licensecheck_timeout), NULL, FALSE},
-         {NULL, NULL, NULL, FALSE}};
-
-    //
-    // Walk XML
-    //
-
-    for (xmlNodePtr sub = cur->children; sub != NULL; sub = sub->next) 
     {
-        for (MTC_U32 i = 0; tags[i].name != NULL; i++) 
-        {
-            if (xmlStrcmp(sub->name, (const xmlChar *) tags[i].name) != 0) 
-            {
-                continue;
-            }
-
-            if (tags[i].is_deprecated)
-            {
-                log_internal(MTC_LOG_WARNING, "Deprecated config option %s\n", sub->name);
-            }
-
-            converter = tags[i].converter;
-            if (converter == NULL)
-            {
-                converter = xml_to_long;
-            }
-
-            MTC_S32 converter_errror = converter(doc, sub, (void*) tags[i].value);
-            if (converter_errror != MTC_SUCCESS)
-            {
-                return converter_errror;
-            }
-
-            break;
-        }
-    }
-    return MTC_SUCCESS; // SUCCESS
+        {"HeartbeatInterval", &(c->common.heartbeat_interval),FALSE, xml_to_long, NULL},
+        {"HeartbeatTimeout", &(c->common.heartbeat_timeout),FALSE, xml_to_long, NULL},
+        {"StateFileInterval", &(c->common.statefile_interval),TRUE, xml_to_long, NULL},
+        {"StateFileTimeout", &(c->common.statefile_timeout),TRUE, xml_to_long, NULL},
+        {"HeartbeatWatchdogTimeout", &(c->common.heartbeat_watchdog_timeout),FALSE, xml_to_long, NULL},
+        {"StateFileWatchdogTimeout", &(c->common.statefile_watchdog_timeout),TRUE, xml_to_long, NULL},
+        {"BootJoinTimeout", &(c->common.boot_join_timeout),FALSE, xml_to_long, NULL},
+        {"EnableJoinTimeout", &(c->common.enable_join_timeout),FALSE, xml_to_long, NULL},
+        {"XapiHealthCheckInterval", &(c->common.xapi_healthcheck_interval),FALSE, xml_to_long, NULL},
+        {"XapiHealthCheckTimeout", &(c->common.xapi_healthcheck_timeout),FALSE, xml_to_long, NULL},
+        {"XapiRestartAttempts", &(c->common.xapi_restart_attempts),FALSE, xml_to_long, NULL},
+        {"XapiRestartTimeout", &(c->common.xapi_restart_timeout),FALSE, xml_to_long, NULL},
+        {"XapiLicenseCheckTimeout", &(c->common.xapi_licensecheck_timeout),FALSE, xml_to_long, NULL},
+        {NULL, NULL, FALSE, NULL, NULL}
+    };
+    return walk_tags(doc, cur, tags);
 }
 
 //
@@ -638,157 +694,18 @@ walk_localhost(
     xmlNodePtr cur,
     HA_CONFIG *c) 
 {
-    char host_id[MTC_UUID_SIZE];
-    xmlNodePtr sub;
-    xmlChar *txt;
-    MTC_U32 i;
 
-    //
-    // Walk XML
-    //
-
-    for (sub = cur->children; sub != NULL; sub = sub->next) 
+    struct xmlTagParser tags[] =
     {
+        {"HostID", &c->local.localhost_index, FALSE, xml_to_hostname, (void*)&(struct xmlToHostnameArg){ .len = c->common.hostnum, .hosts = c->common.host }},
+        {"HeartbeatInterface", &c->local.heartbeat_interface, FALSE, xml_to_string, (void*)&(struct xmlToStringArg){ .max_length = HEARTBEAT_INTERFACE_LEN }},
+        {"HeartbeatPhysicalInterface", &c->local.heartbeat_physical_interface, FALSE, xml_to_string, (void*)&(struct xmlToStringArg){ .max_length = HEARTBEAT_INTERFACE_LEN }},
+        {"StateFile", &c->local.statefile_path, TRUE, xml_to_string, (void*)&(struct xmlToStringArg){ .max_length = STATEFILE_PATH_LEN }},
+        {"WatchdogMode", &c->local.watchdog_mode, FALSE, xml_to_string, (void*)&(struct xmlToStringArg){ .max_length = WATCHDOG_MODE_LEN }},
+        {NULL, NULL, FALSE, NULL, NULL}
+    };
 
-        //
-        // HostID
-        //
-
-        if (xmlStrcmp(sub->name, (const xmlChar *) "HostID") == 0) 
-        {
-            txt = xmlNodeListGetString(doc, sub->children, 1);
-            if (txt == NULL) 
-            {
-                log_internal(MTC_LOG_ERR, "%s: failed to get HostID\n", __func__);
-                return MTC_ERROR_CF_INVALID_FORMAT;
-            }
-            if (uuid_strcpy(host_id, (char *) txt) != MTC_SUCCESS)
-            {
-                log_internal(MTC_LOG_ERR, "%s: invalid HostID %s\n", __func__, txt);
-                xmlFree(txt);
-                return MTC_ERROR_CF_INVALID_FORMAT;
-            }
-            for (i = 0; i < c->common.hostnum; i++) 
-            {
-                if (!strncmp(host_id, c->common.host[i].host_id, MTC_UUID_SIZE)) 
-                {
-                    c->local.localhost_index = i;
-                    break;
-                }
-            }
-            if (i >= c->common.hostnum) 
-            {
-                // localhost is not found in host list
-
-                log_internal(MTC_LOG_ERR, "%s: localhost %s is not found in host list\n", __func__, txt);
-                xmlFree(txt);
-                return MTC_ERROR_CF_INVALID_FORMAT;
-            }
-            xmlFree(txt);
-        }
-
-        //
-        // HeartbeatInterface
-        //
-
-        else if (xmlStrcmp(sub->name, (const xmlChar *) "HeartbeatInterface") == 0) 
-        {
-            txt = xmlNodeListGetString(doc, sub->children, 1);
-            if (txt == NULL) 
-            {
-                log_internal(MTC_LOG_ERR, "%s: failed to get HeartbeatInterface\n", __func__);
-                return MTC_ERROR_CF_INVALID_FORMAT;
-            }
-
-            if (strlen((char *) txt) < HEARTBEAT_INTERFACE_LEN) 
-            {
-                strcpy(c->local.heartbeat_interface, (char *) txt);
-            }
-            else 
-            {
-                strncpy(c->local.heartbeat_interface, (char *) txt, HEARTBEAT_INTERFACE_LEN - 1);
-                c->local.heartbeat_interface[HEARTBEAT_INTERFACE_LEN - 1] = '\0';
-            }
-            xmlFree(txt);
-        }
-
-        //
-        // HeartbeatPhysicalInterface
-        //
-
-        else if (xmlStrcmp(sub->name, (const xmlChar *) "HeartbeatPhysicalInterface") == 0) 
-        {
-            txt = xmlNodeListGetString(doc, sub->children, 1);
-            if (txt == NULL) 
-            {
-                log_internal(MTC_LOG_ERR, "%s: failed to get HeartbeatPhysicalInterface\n", __func__);
-                return MTC_ERROR_CF_INVALID_FORMAT;
-            }
-
-            if (strlen((char *) txt) < HEARTBEAT_INTERFACE_LEN) 
-            {
-                strcpy(c->local.heartbeat_physical_interface, (char *) txt);
-            }
-            else 
-            {
-                strncpy(c->local.heartbeat_physical_interface, (char *) txt, HEARTBEAT_INTERFACE_LEN - 1);
-                c->local.heartbeat_interface[HEARTBEAT_INTERFACE_LEN - 1] = '\0';
-            }
-            xmlFree(txt);
-        }
-
-        //
-        // StateFile
-        //
-
-        else if (xmlStrcmp(sub->name, (const xmlChar *) "StateFile") == 0) 
-        {
-            txt = xmlNodeListGetString(doc, sub->children, 1);
-            if (txt == NULL) 
-            {
-                log_internal(MTC_LOG_ERR, "%s: failed to get StateFile\n", __func__);
-                return MTC_ERROR_CF_INVALID_FORMAT;
-            }
-
-            if (strlen((char *) txt) < STATEFILE_PATH_LEN) 
-            {
-                strcpy(c->local.statefile_path, (char *) txt);
-            }
-            else 
-            {
-                strncpy(c->local.statefile_path, (char *) txt, STATEFILE_PATH_LEN -1);
-                c->local.statefile_path[STATEFILE_PATH_LEN - 1] = '\0';
-            }
-
-            xmlFree(txt);
-        }
-
-        //
-        // Watchdog Mode
-        //
-
-        else if (xmlStrcmp(sub->name, (const xmlChar *) "WatchdogMode") == 0) 
-        {
-            txt = xmlNodeListGetString(doc, sub->children, 1);
-            if (txt == NULL) 
-            {
-                log_internal(MTC_LOG_ERR, "%s: failed to get StateFile\n", __func__);
-                return MTC_ERROR_CF_INVALID_FORMAT;
-            }
-
-            if (strlen((char *) txt) < WATCHDOG_MODE_LEN) 
-            {
-                strcpy(c->local.watchdog_mode, (char *) txt);
-            }
-            else 
-            {
-                strncpy(c->local.watchdog_mode, (char *) txt, WATCHDOG_MODE_LEN -1);
-                c->local.watchdog_mode[WATCHDOG_MODE_LEN - 1] = '\0';
-            }
-            xmlFree(txt);
-        }
-    }
-    return MTC_SUCCESS; // SUCCESS
+    return walk_tags(doc, cur, tags);
 }
 
 
