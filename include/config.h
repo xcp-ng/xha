@@ -53,19 +53,19 @@
 // Default values
 //
 
-#define HEARTBEAT_INTERVAL_DEFAULT            4
-#define HEARTBEAT_TIMEOUT_DEFAULT            30
-#define HEARTBEAT_WATCHDOG_TIMEOUT_DEFAULT   30
-#define STATEFILE_INTERVAL_DEFAULT            4
-#define STATEFILE_TIMEOUT_DEFAULT            30
-#define STATEFILE_WATCHDOG_TIMEOUT_DEFAULT   45
-#define BOOT_JOIN_TIMEOUT_DEFAULT            90
-#define ENABLE_JOIN_TIMEOUT_DEFAULT          90
-#define XAPI_HEALTH_CHECK_INTERVAL_DEFAULT   60  // TBD - should be specified by XS
-#define XAPI_HEALTH_CHECK_TIMEOUT_DEFAULT    10  // TBD - should be specified by XS
-#define XAPI_RESTART_ATTEMPTS_DEFAULT         1  // TBD - should be specified by XS
-#define XAPI_RESTART_TIMEOUT_DEFAULT         30  // TBD - should be specified by XS
-#define XAPI_LICENSE_CHECK_TIMEOUT           30
+#define HEARTBEAT_INTERVAL_DEFAULT                4
+#define HEARTBEAT_TIMEOUT_DEFAULT                 30
+#define HEARTBEAT_WATCHDOG_TIMEOUT_DEFAULT        30
+#define STATE_CHECKER_INTERVAL_DEFAULT            4
+#define STATE_CHECKER_TIMEOUT_DEFAULT            30
+#define STATE_CHECKER_WATCHDOG_TIMEOUT_DEFAULT   45
+#define BOOT_JOIN_TIMEOUT_DEFAULT                90
+#define ENABLE_JOIN_TIMEOUT_DEFAULT              90
+#define XAPI_HEALTH_CHECK_INTERVAL_DEFAULT       60  // TBD - should be specified by XS
+#define XAPI_HEALTH_CHECK_TIMEOUT_DEFAULT        10  // TBD - should be specified by XS
+#define XAPI_RESTART_ATTEMPTS_DEFAULT             1  // TBD - should be specified by XS
+#define XAPI_RESTART_TIMEOUT_DEFAULT             30  // TBD - should be specified by XS
+#define XAPI_LICENSE_CHECK_TIMEOUT               30
 
 ////
 //
@@ -93,6 +93,18 @@ typedef struct ha_config_host_info {
 } HA_CONFIG_HOST_INFO, *PHA_CONFIG_HOST_INFO;
 
 //
+// HA_CONFIG_STATE_CHECKER_COMMON
+//
+//  Define the common section of the state checker.
+//
+
+typedef struct ha_config_state_checker_common {
+    MTC_U32 interval;
+    MTC_U32 timeout;
+    MTC_U32 watchdog_timeout;
+} HA_CONFIG_STATE_CHECKER_COMMON, *PHA_CONFIG_STATE_CHECKER_COMMON;
+
+//
 // HA_CONFIG_COMMON
 //
 //  Define the common section in the config-file.
@@ -100,23 +112,21 @@ typedef struct ha_config_host_info {
 
 typedef struct ha_config_common
 {
-    MTC_S8              generation_uuid[MTC_UUID_SIZE];  // '-' is removed,non NULL terminated.
-    MTC_U32             udp_port;                   // host byte order
-    MTC_U32             hostnum;
-    HA_CONFIG_HOST_INFO    host[MAX_HOST_NUM];
-    MTC_U32             heartbeat_interval;
-    MTC_U32             heartbeat_timeout;
-    MTC_U32             statefile_interval;
-    MTC_U32             statefile_timeout;
-    MTC_U32             heartbeat_watchdog_timeout;
-    MTC_U32             statefile_watchdog_timeout;
-    MTC_U32             boot_join_timeout;
-    MTC_U32             enable_join_timeout;
-    MTC_U32             xapi_healthcheck_interval;
-    MTC_U32             xapi_healthcheck_timeout;
-    MTC_U32             xapi_restart_attempts;
-    MTC_U32             xapi_restart_timeout;
-    MTC_U32             xapi_licensecheck_timeout;
+    MTC_S8                          generation_uuid[MTC_UUID_SIZE];  // '-' is removed,non NULL terminated.
+    MTC_U32                         udp_port;                   // host byte order
+    MTC_U32                         hostnum;
+    HA_CONFIG_HOST_INFO             host[MAX_HOST_NUM];
+    MTC_U32                         heartbeat_interval;
+    MTC_U32                         heartbeat_timeout;
+    MTC_U32                         heartbeat_watchdog_timeout;
+    MTC_U32                         boot_join_timeout;
+    MTC_U32                         enable_join_timeout;
+    MTC_U32                         xapi_healthcheck_interval;
+    MTC_U32                         xapi_healthcheck_timeout;
+    MTC_U32                         xapi_restart_attempts;
+    MTC_U32                         xapi_restart_timeout;
+    MTC_U32                         xapi_licensecheck_timeout;
+    HA_CONFIG_STATE_CHECKER_COMMON  state_checker;
 }   HA_CONFIG_COMMON, *PHA_CONFIG_COMMON;
 
 //
@@ -176,10 +186,10 @@ extern HA_CONFIG      ha_config;
 #define _host_info      (ha_config.common.host)
 #define _t1             (ha_config.common.heartbeat_interval)
 #define _T1             (ha_config.common.heartbeat_timeout)
-#define _t2             (ha_config.common.statefile_interval)
-#define _T2             (ha_config.common.statefile_timeout)
+#define _t2             (ha_config.common.state_checker.interval)
+#define _T2             (ha_config.common.state_checker.timeout)
 #define _Wh             (ha_config.common.heartbeat_watchdog_timeout)
-#define _Ws             (ha_config.common.statefile_watchdog_timeout)
+#define _Ws             (ha_config.common.state_checker.watchdog_timeout)
 #define _Tboot          (ha_config.common.boot_join_timeout)
 #define _Tenable        (ha_config.common.enable_join_timeout)
 #define _tXapi          (ha_config.common.xapi_healthcheck_interval)

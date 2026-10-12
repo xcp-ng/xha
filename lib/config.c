@@ -296,10 +296,7 @@ static void set_default_value(HA_CONFIG *c)
 {
     c->common.heartbeat_interval = HEARTBEAT_INTERVAL_DEFAULT;
     c->common.heartbeat_timeout = HEARTBEAT_TIMEOUT_DEFAULT;
-    c->common.statefile_interval = STATEFILE_INTERVAL_DEFAULT;
-    c->common.statefile_timeout = STATEFILE_TIMEOUT_DEFAULT;
     c->common.heartbeat_watchdog_timeout = HEARTBEAT_WATCHDOG_TIMEOUT_DEFAULT;
-    c->common.statefile_watchdog_timeout = STATEFILE_WATCHDOG_TIMEOUT_DEFAULT;
     c->common.boot_join_timeout = BOOT_JOIN_TIMEOUT_DEFAULT;
     c->common.enable_join_timeout = ENABLE_JOIN_TIMEOUT_DEFAULT;
     c->common.xapi_healthcheck_interval = XAPI_HEALTH_CHECK_INTERVAL_DEFAULT;
@@ -307,6 +304,9 @@ static void set_default_value(HA_CONFIG *c)
     c->common.xapi_restart_attempts = XAPI_RESTART_ATTEMPTS_DEFAULT;
     c->common.xapi_restart_timeout = XAPI_RESTART_TIMEOUT_DEFAULT;
     c->common.xapi_licensecheck_timeout = XAPI_LICENSE_CHECK_TIMEOUT;
+    c->common.state_checker.interval = STATE_CHECKER_INTERVAL_DEFAULT;
+    c->common.state_checker.timeout = STATE_CHECKER_TIMEOUT_DEFAULT;
+    c->common.state_checker.watchdog_timeout = STATE_CHECKER_WATCHDOG_TIMEOUT_DEFAULT;
 }
 
 //
@@ -609,6 +609,48 @@ walk_host_config(
 //
 //  NAME:
 //
+//      walk_state_checker
+//
+//  DESCRIPTION:
+//
+//      walk host subtree and set HA_CONFIG_STATE_CHECKER_COMMON
+//
+//  FORMAL PARAMETERS:
+//
+//      doc    - pointer for xml doc
+//      cur    - xml node for host element
+//      config - HA_CONFIG_STATE_CHECKER_COMMON
+//      args   - ignored
+//
+//  RETURN VALUE:
+//
+//      0: success
+//      other: failed
+//
+//  ENVIRONMENT:
+//
+//      None
+//
+//--
+//
+
+static MTC_S32 walk_state_checker(xmlDocPtr doc, xmlNodePtr cur, void *config, void *args)
+{
+    struct ha_config_state_checker_common *checker = (struct ha_config_state_checker_common*) config;
+    struct xmlTagParser tags[] = {
+        {"Interval", &(checker->interval), FALSE, xml_to_long, NULL},
+        {"Timeout", &(checker->timeout), FALSE, xml_to_long, NULL},
+        {"WatchdogTimeout", &(checker->watchdog_timeout), FALSE, xml_to_long, NULL},
+        {NULL, NULL, FALSE, NULL, NULL}
+    };
+    return walk_tags(doc, cur, tags);
+}
+
+//
+//++
+//
+//  NAME:
+//
 //      walk_parameters_config
 //
 //  DESCRIPTION:
@@ -641,19 +683,20 @@ walk_parameters_config(
 {
     struct xmlTagParser tags[] = 
     {
-        {"HeartbeatInterval", &(c->common.heartbeat_interval),FALSE, xml_to_long, NULL},
-        {"HeartbeatTimeout", &(c->common.heartbeat_timeout),FALSE, xml_to_long, NULL},
-        {"StateFileInterval", &(c->common.statefile_interval),TRUE, xml_to_long, NULL},
-        {"StateFileTimeout", &(c->common.statefile_timeout),TRUE, xml_to_long, NULL},
-        {"HeartbeatWatchdogTimeout", &(c->common.heartbeat_watchdog_timeout),FALSE, xml_to_long, NULL},
-        {"StateFileWatchdogTimeout", &(c->common.statefile_watchdog_timeout),TRUE, xml_to_long, NULL},
-        {"BootJoinTimeout", &(c->common.boot_join_timeout),FALSE, xml_to_long, NULL},
-        {"EnableJoinTimeout", &(c->common.enable_join_timeout),FALSE, xml_to_long, NULL},
-        {"XapiHealthCheckInterval", &(c->common.xapi_healthcheck_interval),FALSE, xml_to_long, NULL},
-        {"XapiHealthCheckTimeout", &(c->common.xapi_healthcheck_timeout),FALSE, xml_to_long, NULL},
-        {"XapiRestartAttempts", &(c->common.xapi_restart_attempts),FALSE, xml_to_long, NULL},
-        {"XapiRestartTimeout", &(c->common.xapi_restart_timeout),FALSE, xml_to_long, NULL},
-        {"XapiLicenseCheckTimeout", &(c->common.xapi_licensecheck_timeout),FALSE, xml_to_long, NULL},
+        {"HeartbeatInterval", &(c->common.heartbeat_interval), FALSE, xml_to_long, NULL},
+        {"HeartbeatTimeout", &(c->common.heartbeat_timeout), FALSE, xml_to_long, NULL},
+        {"StateFileInterval", &(c->common.state_checker.interval), TRUE, xml_to_long, NULL},
+        {"StateFileTimeout", &(c->common.state_checker.timeout), TRUE, xml_to_long, NULL},
+        {"HeartbeatWatchdogTimeout", &(c->common.heartbeat_watchdog_timeout), FALSE, xml_to_long, NULL},
+        {"StateFileWatchdogTimeout", &(c->common.state_checker.watchdog_timeout), TRUE, xml_to_long, NULL},
+        {"BootJoinTimeout", &(c->common.boot_join_timeout), FALSE, xml_to_long, NULL},
+        {"EnableJoinTimeout", &(c->common.enable_join_timeout), FALSE, xml_to_long, NULL},
+        {"XapiHealthCheckInterval", &(c->common.xapi_healthcheck_interval), FALSE, xml_to_long, NULL},
+        {"XapiHealthCheckTimeout", &(c->common.xapi_healthcheck_timeout), FALSE, xml_to_long, NULL},
+        {"XapiRestartAttempts", &(c->common.xapi_restart_attempts), FALSE, xml_to_long, NULL},
+        {"XapiRestartTimeout", &(c->common.xapi_restart_timeout), FALSE, xml_to_long, NULL},
+        {"XapiLicenseCheckTimeout", &(c->common.xapi_licensecheck_timeout), FALSE, xml_to_long, NULL},
+        {"state-checker", &(c->common.state_checker), FALSE, walk_state_checker, NULL},
         {NULL, NULL, FALSE, NULL, NULL}
     };
     return walk_tags(doc, cur, tags);
