@@ -36,6 +36,7 @@
 
 #include <netdb.h>
 #include <netinet/in.h>
+#include <sys/queue.h>
 #include <linux/limits.h>
 
 #include "mtctypes.h"
@@ -45,9 +46,8 @@
 // Constants
 //
 
-#define HEARTBEAT_INTERFACE_LEN             64
-#define STATEFILE_PATH_LEN                  (PATH_MAX + 1)
-#define WATCHDOG_MODE_LEN                   16
+#define HEARTBEAT_INTERFACE_LEN    64
+#define WATCHDOG_MODE_LEN          16
 
 //
 // Default values
@@ -130,6 +130,67 @@ typedef struct ha_config_common
 }   HA_CONFIG_COMMON, *PHA_CONFIG_COMMON;
 
 //
+// HA_CONFIG_STATE_CHECKER_TYPE
+//
+//  Types of state checkers backend availables.
+//  UNSET is the default value for everything unsupported.
+//
+
+typedef enum ha_config_state_checker_type {
+    UNSET,
+    STATEFILE,
+    SCRIPT
+} HA_CONFIG_STATE_CHECKER_TYPE;
+
+//
+// HA_CONFIG_STATE_CHECKER_LOCAL_STATEFILE
+//
+//  Config when using a classic statefile.
+//
+
+typedef struct ha_config_state_checker_local_statefile {
+    MTC_S8  path[PATH_MAX];
+} HA_CONFIG_STATE_CHECKER_LOCAL_STATEFILE, *PHA_CONFIG_STATE_CHECKER_LOCAL_STATEFILE;
+
+//
+// command_arg
+//  Single element for queues containing args of script checkers commands.
+//
+
+struct command_arg
+{
+    MTC_S8 arg[PATH_MAX];
+    TAILQ_ENTRY(command_arg) args;
+};
+
+TAILQ_HEAD(command_args_head, command_arg);
+
+//
+// HA_CONFIG_STATE_CHECKER_LOCAL_SCRIPT
+//  Config when using a script to check the state of the SR.
+//
+
+typedef struct ha_config_state_checker_local_script {
+    MTC_S8 executable[PATH_MAX];
+    struct command_args_head args;
+    MTC_S8 working_directory[PATH_MAX];
+} HA_CONFIG_STATE_CHECKER_LOCAL_SCRIPT, *PHA_CONFIG_STATE_CHECKER_LOCAL_SCRIPT;
+
+//
+// HA_CONFIG_STATE_CHECKER_LOCAL
+//
+//  Dedicated struct to hold state checker config.
+//
+
+typedef struct ha_config_state_checker_local {
+    HA_CONFIG_STATE_CHECKER_TYPE type;
+    union {
+        HA_CONFIG_STATE_CHECKER_LOCAL_STATEFILE statefile;
+        HA_CONFIG_STATE_CHECKER_LOCAL_SCRIPT    script;
+    };
+} HA_CONFIG_STATE_CHECKER_LOCAL, *PHA_CONFIG_STATE_CHECKER_LOCAL;
+
+//
 // HA_CONFIG_LOCAL
 //
 //  Define the local part in config-file.
@@ -137,11 +198,11 @@ typedef struct ha_config_common
 
 typedef struct ha_config_local
 {
-    MTC_U32             localhost_index;  // index for ha_config.common.host
-    MTC_S8              heartbeat_interface[HEARTBEAT_INTERFACE_LEN]; // example "xenbr0" "xapi1"
-    MTC_S8              heartbeat_physical_interface[HEARTBEAT_INTERFACE_LEN]; // example "eth0" "bond0"
-    MTC_S8              statefile_path[STATEFILE_PATH_LEN];
-    MTC_S8              watchdog_mode[WATCHDOG_MODE_LEN];
+    MTC_U32                       localhost_index;                                       // index for ha_config.common.host
+    MTC_S8                        heartbeat_interface[HEARTBEAT_INTERFACE_LEN];          // example "xenbr0" "xapi1"
+    MTC_S8                        heartbeat_physical_interface[HEARTBEAT_INTERFACE_LEN]; // example "eth0" "bond0"
+    MTC_S8                        watchdog_mode[WATCHDOG_MODE_LEN];
+    HA_CONFIG_STATE_CHECKER_LOCAL state_checker;
 }   HA_CONFIG_LOCAL, *PHA_CONFIG_LOCAL;
 
 //
@@ -177,7 +238,7 @@ extern HA_CONFIG      ha_config;
 #define _my_index       (ha_config.local.localhost_index)
 #define _hb_interface   (ha_config.local.heartbeat_interface)
 #define _hb_pif         (ha_config.local.heartbeat_physical_interface)
-#define _sf_path        (ha_config.local.statefile_path)
+#define _sf_path        (ha_config.local.state_checker.statefile.path)
 #define _wd_mode        (ha_config.local.watchdog_mode)
 
 #define _gen_UUID       (ha_config.common.generation_uuid)
@@ -200,6 +261,8 @@ extern HA_CONFIG      ha_config;
 
 #define _my_UUID        (_host_info[_my_index].host_id)
 #define _is_configured_host(X)   (X < ha_config.common.hostnum)
+
+void free_config(HA_CONFIG *conf);
 
 ////
 //

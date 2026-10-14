@@ -278,6 +278,7 @@ main(
 
     if (status != MTC_SUCCESS)
     {
+        free_config(&ha_config);
         main_exit(status);
     }
 
@@ -297,6 +298,7 @@ main(
     // #### Restart logs
     if ((status = log_initialize()) != MTC_SUCCESS)
     {
+        free_config(&ha_config);
         main_exit(status);
     }
     main_log_timeouts();
@@ -361,6 +363,7 @@ main(
             else
             {
                 log_message(MTC_LOG_ERR, "pthread_attr_setinheritsched failed, HA daemon exited. (%d)\n", pthread_ret);
+                free_config(&ha_config);
                 main_exit(MTC_ERROR_SYSTEM_LEVEL_FAILURE);
             }
 
@@ -392,6 +395,7 @@ main(
                     (void)(*init_funcs[init_index])(-1);
                 }
 
+                free_config(&ha_config);
                 main_exit(status);
             }
         }
@@ -424,6 +428,7 @@ main(
 
     close(lockfiled);
 
+    free_config(&ha_config);
     main_exit(exit_status);
 
     return 0;   // stub to avoid a compiler warning
