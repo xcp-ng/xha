@@ -222,7 +222,7 @@ main(
     struct sigaction ignore = { 0 };
     ignore.sa_handler = SIG_IGN;
     sigaction(SIGHUP, &ignore, NULL);
-        
+
     //  Initialize ha_config in BSS.
     //  (static initialization causes a warning for unknown reason)
 
@@ -230,15 +230,27 @@ main(
 
     fist_initialize();
 
-    if (argc < 2)
-    {
-        main_exit(MTC_ERROR_INVALID_PARAMETER);
-    }
-
     //  #### Remember the command name used to start this process.
 
     daemon_vars.name = argv[0];
     daemon_vars.config_path = argv[1];
+
+
+    //  Open logging
+
+    if ((status = log_initialize()) != MTC_SUCCESS)
+    {
+        main_exit(status);
+    }
+
+    log_message(MTC_LOG_NOTICE, "HA daemon started - built at " BUILD_DATE " - " BUILD_ID "\n");
+
+    // Check arguments
+
+    if (argc < 2)
+    {
+        main_exit(MTC_ERROR_INVALID_PARAMETER);
+    }
 
     //  #### If HA daemon is already present, exit here.
 
@@ -266,11 +278,13 @@ main(
 
     if (status != MTC_SUCCESS)
     {
+        free_config(&ha_config);
         main_exit(status);
     }
 
     //  #### Close all inherited file descriptors.
 
+    log_terminate(); // FDs for logs will be closed, we close them properly and open them again after
     getrlimit(RLIMIT_NOFILE, &rlimit);
     for (fd = 2; fd < rlimit.rlim_cur; fd++)
     {
@@ -280,14 +294,13 @@ main(
         }
     }
 
-    //  Open logging
-
+    // Log general info
+    // #### Restart logs
     if ((status = log_initialize()) != MTC_SUCCESS)
     {
+        free_config(&ha_config);
         main_exit(status);
     }
-
-    log_message(MTC_LOG_NOTICE, "HA daemon started - built at " BUILD_DATE " - " BUILD_ID "\n");
     main_log_timeouts();
     log_logmask();
 
@@ -350,6 +363,7 @@ main(
             else
             {
                 log_message(MTC_LOG_ERR, "pthread_attr_setinheritsched failed, HA daemon exited. (%d)\n", pthread_ret);
+                free_config(&ha_config);
                 main_exit(MTC_ERROR_SYSTEM_LEVEL_FAILURE);
             }
 
@@ -381,6 +395,7 @@ main(
                     (void)(*init_funcs[init_index])(-1);
                 }
 
+                free_config(&ha_config);
                 main_exit(status);
             }
         }
@@ -413,6 +428,7 @@ main(
 
     close(lockfiled);
 
+    free_config(&ha_config);
     main_exit(exit_status);
 
     return 0;   // stub to avoid a compiler warning

@@ -4,7 +4,7 @@
 
 CC=gcc
 SOURCEDIR=..
-override CFLAGS+=-g -Wall -Wno-multichar -Werror=pointer-to-int-cast -Og
+override CFLAGS+=-g -Wall -Wno-multichar -Werror=pointer-to-int-cast -Og --std=gnu99
 
 OBJDIR=$(SOURCEDIR)/debug
 
