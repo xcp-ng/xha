@@ -1107,15 +1107,13 @@ send_hb()
     if (!hb_check_fist("hb.isolate") &&
         !fist_on("hb.send.lostpacket"))
     {
-        index = 0;
-        const socket_address *ss = &hbvar.sa_to[index];
-        const socklen_t dest_len = ss->sa.sa_family == AF_INET ? sizeof(ss->sa_in) : sizeof(ss->sa_in6);
-
-        for (; _is_configured_host(index); index++)
+        for (index = 0; _is_configured_host(index); index++)
         {
             if (index != _my_index)
             {
-                const int ret = sendto(hbvar.socket, &pkt, sizeof(pkt), 0, &hbvar.sa_to[index].sa, dest_len);
+                const socket_address *ss = &hbvar.sa_to[index];
+                const socklen_t dest_len = ss->sa.sa_family == AF_INET ? sizeof(ss->sa_in) : sizeof(ss->sa_in6);
+                const int ret = sendto(hbvar.socket, &pkt, sizeof(pkt), 0, &ss->sa, dest_len);
                 if (ret == -1)
                 {
                     log_message(MTC_LOG_ERR, "HB: sendto() failed. (sys %d)\n", errno);
