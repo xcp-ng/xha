@@ -73,4 +73,6 @@ $(OBJDIR)/fist.o: fist.c  $(INCDIR)/*.h
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 $(OBJDIR)/hostweight.o: hostweight.c  $(INCDIR)/*.h
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+$(OBJDIR)/statescript.o: state_checker.c  $(INCDIR)/*.h
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
