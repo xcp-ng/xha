@@ -1072,7 +1072,7 @@ send_hb()
         pkt.SR2 = psm->SR2;
 
         // State File information
-        pkt.SF_access = psf->SF_access;
+        pkt.SF_access = stc_is_available();
         pkt.SF_corrupted = psf->SF_corrupted;
 
         // get current time;

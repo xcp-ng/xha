@@ -36,6 +36,7 @@
 //
 //
 
+#include "state_checker.h"
 #define _GNU_SOURCE
 #include <assert.h>
 #include <errno.h>
@@ -338,7 +339,7 @@ sf_initialize0()
     }
     lm_initialize_lm_fields(&sfobj);
     bzero(&sfobj.master, sizeof(sfobj.master));
-    sfobj.SF_access = FALSE;
+    stc_set_is_available(FALSE);
     sfobj.SF_corrupted = FALSE;
     MTC_HOSTMAP_INIT_RESET(sfobj.excluded);
     MTC_HOSTMAP_INIT_RESET(sfobj.sfdomain);
@@ -824,7 +825,8 @@ readsf()
 
         //  SF_access
         sf_lock();
-        psf->SF_access = sfvar.SF_access = TRUE;
+        sfvar.SF_access = TRUE;
+        stc_set_is_available(sfvar.SF_access);
         sf_unlock();
 
         //  master
@@ -883,7 +885,8 @@ readsf()
         }
 
         sf_lock();
-        psf->SF_access = sfvar.SF_access = FALSE;
+        sfvar.SF_access = FALSE;
+        stc_set_is_available(sfvar.SF_access);
         sfvar.interval.accelerate_count = 0;
         sfvar.interval.ms = _t2 * 1000;
         sf_unlock();
@@ -992,7 +995,8 @@ write_hostspecific()
         }
 
         sf_lock();
-        psf->SF_access = sfvar.SF_access = FALSE;
+        sfvar.SF_access = FALSE;
+        stc_set_is_available(sfvar.SF_access);
         sfvar.interval.accelerate_count = 0;
         sfvar.interval.ms = _t2 * 1000;
         sf_unlock();

@@ -48,6 +48,7 @@
 //
 //
 
+#include "state_checker.h"
 #define _GNU_SOURCE
 #include <assert.h>
 #include <pthread.h>
@@ -496,11 +497,11 @@ lm_request_lock(
         pthread_cond_wait(&lmvar.cond, &lmvar.mutex);
 
         // check if the request is canceled or this node lost SF accessibility
-        if (!is_requesting(_my_index) || !lmvar.sf.SF_access)
+        if (!is_requesting(_my_index) || !stc_is_available())
         {
             log_maskable_debug_message(LM_TRACE, 
                 "LM: lock request canceled, (my request, SF_access) = (%s, %s).\n",
-                (is_requesting(_my_index))? "T": "F", (lmvar.sf.SF_access)? "T": "F");
+                (is_requesting(_my_index))? "T": "F", (stc_is_available())? "T": "F");
             break;
         }
     }
@@ -603,7 +604,7 @@ lock_mgr(
             break;
         }
 
-        if (!lmvar.sf.SF_access || !is_online(_my_index))
+        if (!stc_is_available() || !is_online(_my_index))
         {
             pthread_mutex_unlock(&lmvar.mutex);
             continue;

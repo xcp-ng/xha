@@ -1066,7 +1066,7 @@ test_Survival_Rule(
         // Check if Survival Rule-2
         for (index = 0; _is_configured_host(index); index++)
         {
-            sf_access = (index == _my_index)? psf->SF_access: MTC_HOSTMAP_ISON(phb->raw[index].sfdomain, index);
+            sf_access = (index == _my_index)?stc_is_available(): MTC_HOSTMAP_ISON(phb->raw[index].sfdomain, index);
             excluded = MTC_HOSTMAP_ISON(psf->excluded, index);
             in_hbd = MTC_HOSTMAP_ISON(hbd, index);
 
@@ -1190,10 +1190,10 @@ test_Start_Criteria()
 
 
         // Still have State File access?
-        if (!sf.SF_access)
+        if (!stc_is_available())
         {
             log_internal(MTC_LOG_ERR,
-                        "Start Criteria: lost the state file access while starting.\n");
+                        "Start Criteria: the state_checker is down while starting.\n");
             return MTC_ERROR_SM_NOSTATEFILE;
         }
 
@@ -1707,7 +1707,7 @@ surviving_by_SR2()
     {
         if (index == _my_index)
         {
-            if (!psf->SF_access)
+            if (!stc_is_available())
             {
                 recovered = FALSE;
             }
@@ -1895,7 +1895,7 @@ update_sfdomain_sub(
         {
             if (index == _my_index && !psf->ctl.enable_SF_write)
             {
-                hostmap[index] = (psf->SF_access)? 'D': 'd';
+                hostmap[index] = (stc_is_available())? 'D': 'd';
                 if (MTC_HOSTMAP_ISON(psf->sfdomain, index))
                 {
                     if (writable)
@@ -1935,7 +1935,7 @@ update_sfdomain_sub(
                 {
                     if (writable)
                     {
-                        psf->SF_access = FALSE;
+                       stc_set_is_available(FALSE);
                     }
                 }
 

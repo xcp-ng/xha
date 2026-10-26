@@ -41,6 +41,19 @@ extern "C"
 
 #include "mtctypes.h"
 
+/**
+ * Return availability of the state_checker
+ * If this is TRUE, it means that we can reach the backend
+ * of the state checker properly and can rely on it.
+ **/
+bool stc_is_available();
+
+/**
+ * Set the availability status of the state_checker
+ * If set to FALSE, it means that we can't reach the backend anymore
+ **/
+void stc_set_is_available(bool is_available);
+
 typedef enum {
     FENCING_NONE,
     FENCING_ARMED,
@@ -142,7 +155,6 @@ typedef struct _COM_DATA_SF
 
     MTC_U32     pool_state;                 // Pool state as written in the SF global section.
     MTC_UUID    master;                     // Master's host UUID as written in the SF global section.
-    MTC_BOOLEAN SF_access;                  // TRUE if if the local host has access to the SF
     MTC_BOOLEAN SF_corrupted;               // TRUE if SF corruption is detected. SF_access turns to FALSE as well.
     MTC_S64     time_last_SF[MAX_HOST_NUM]; // Milliseconds since the last update to the State-File
                                             // was seen from each host.
