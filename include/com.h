@@ -23,7 +23,7 @@
 //
 //  DESCRIPTION:
 //
-//      This header file containts 
+//      This header file contains 
 //         external constants
 //         data structures
 //         functions
@@ -69,7 +69,7 @@ typedef void *HA_COMMON_OBJECT_HANDLE, **PHA_COMMON_OBJECT_HANDLE;
 //  Be careful about deadlock.
 //  
 //
-//  paramaters
+//  parameters
 //    object_handle: Handle of the HA Common Object 
 //    buffer: Data buffer of the HA Common Object
 //
@@ -83,7 +83,7 @@ typedef void (*HA_COMMON_OBJECT_CALLBACK)(HA_COMMON_OBJECT_HANDLE object_handle,
 //  Initialize HA Common Object Manager.
 //
 //
-//  paramaters
+//  parameters
 //    phase - 0: initialize
 //            1: start
 //           -1: terminate
@@ -107,7 +107,7 @@ com_initialize(
 //  the function returns success with valid ObjectHandle.
 //
 //
-//  paramaters
+//  parameters
 //    object_id: HA Common Object ID
 //    object_handle: Handle of the HA Common Object 
 //    size: data size of the HA Common Object
@@ -133,7 +133,7 @@ com_create(char *object_id,
 //  If the object does not exist, the function returns success 
 //  with valid ObjectHandle.
 //
-//  paramaters
+//  parameters
 //    object_id: HA Common Object ID
 //    object_handle: Handle of the HA Common Object 
 //
@@ -155,7 +155,7 @@ com_open(
 //  Close HA Common Object.
 //
 //
-//  paramaters
+//  parameters
 //    object_handle: Handle of the HA Common Object 
 //
 //  return value
@@ -176,7 +176,7 @@ com_close(
 //  Register callback function which is called when the object
 //  has been modified. The ObjectHandle is passed to the callback function.
 //
-//  paramaters
+//  parameters
 //    object_handle: Handle of the HA Common Object 
 //    func: callback function
 //
@@ -198,7 +198,7 @@ com_register_callback(
 //
 //  Deregister callback function.
 //
-//  paramaters
+//  parameters
 //    object_handle: Handle of the HA Common Object 
 //    func: callback function
 //
@@ -221,10 +221,10 @@ com_deregister_callback(
 //  Acquire the writer lock for the object.
 //  com_writer_unlock must be called as soon as possible.
 //
-//  paramaters
+//  parameters
 //    object_handle: Handle of the HA Common Object 
 //    buffer: pointer to the HA Common Object data is passed 
-//            when this fucntion returns.
+//            when this function returns.
 //
 //  return value
 //    0: success
@@ -243,7 +243,7 @@ com_writer_lock(
 //
 //  Release the writer lock for the object.
 //
-//  paramaters
+//  parameters
 //    object_handle: Handle of the HA Common Object 
 //
 //  return value
@@ -263,10 +263,10 @@ com_writer_unlock(
 //  Acquire the reader lock for the object.
 //  com_reader_unlock must be called as soon as possible.
 //
-//  paramaters
+//  parameters
 //    object_handle: Handle of the HA Common Object 
 //    buffer: pointer to the HA Common Object data is passed 
-//            when this fucntion returns.
+//            when this function returns.
 //
 //  return value
 //    0: success
@@ -284,7 +284,7 @@ com_reader_lock(
 //
 //  Release the reader lock for the object.
 //
-//  paramaters
+//  parameters
 //    object_handle: Handle of the HA Common Object 
 //
 //  return value

@@ -32,7 +32,6 @@
 //
 //   
 
-#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -41,6 +40,7 @@
 #include <assert.h>
 #include <inttypes.h>
 
+#include "config.h"
 #include "mtctypes.h"
 #include "mtcerrno.h"
 #include "log.h"
@@ -53,6 +53,7 @@
 #include "statefile.h"
 #include "buildid.h"
 #include "fist.h"
+#include "hostweight.h"
 
 //
 //
@@ -696,7 +697,7 @@ script_service_do_propose_master(
     }
 
     //
-    // aquire lock
+    // acquire lock
     //
 
     p->accepted_as_master = lm_request_lock(_my_UUID);
@@ -933,7 +934,7 @@ script_service_do_disarm_fencing(
     com_writer_unlock(h_sf);
 
     //
-    // wait disarm fencing complation to SM
+    // wait disarm fencing completion to SM
     //
 
     fencing = FENCING_NONE;
@@ -985,7 +986,7 @@ script_service_do_disarm_fencing(
     }
 
     //
-    // wait disarm fencing complation to SF
+    // wait disarm fencing completion to SF
     //
 
     fencing = FENCING_NONE;

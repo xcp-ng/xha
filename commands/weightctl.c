@@ -46,7 +46,6 @@
 #include <ctype.h>
 #include <fcntl.h>
 
-#include <errno.h>
 #include <assert.h>
 
 
@@ -58,7 +57,6 @@
 
 #include "mtctypes.h"
 #include "mtcerrno.h"
-#include "log.h"
 #include "hostweight.h"
 
 //

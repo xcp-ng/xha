@@ -81,7 +81,7 @@ do
     # $retval == $MTC_EXIT_DAEMON_IS_NOT_PRESENT && $host_state==any && $daemon_pid is invalid
     #       The daemon is gone. We return the exit code of the daemon.
     # $retval == other errors && $host_state==any
-    #       The calldaemon encountered an error. We tolerate 3 occurences of this.
+    #       The calldaemon encountered an error. We tolerate 3 occurrences of this.
     #       After 3 times, we return the exit code of the calldaemon.
 
     if [ $retval -eq $MTC_EXIT_SUCCESS ]; then

@@ -35,7 +35,6 @@
 
 
 #include "mtctypes.h"
-#include "config.h"
 
 ////
 //

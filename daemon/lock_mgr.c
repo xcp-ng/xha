@@ -51,7 +51,6 @@
 #define _GNU_SOURCE
 #include <assert.h>
 #include <pthread.h>
-#include <signal.h>
 #include <string.h>
 
 
@@ -201,7 +200,7 @@ write_master_uuid(
 //  Initialize lock manager.
 //
 //
-//  paramaters
+//  parameters
 //
 //  return value
 //    0: success
@@ -402,7 +401,7 @@ lm_cleanup_objects()
 //  Initialize lock manager fields in State-File.
 //
 //
-//  paramaters
+//  parameters
 //
 //  return value
 //
@@ -436,9 +435,9 @@ lm_initialize_lm_fields(
 //  function is called, this function returns TRUE.
 //
 //
-//  paramaters
+//  parameters
 //    uuidMaster: UUID of this host.  If this host acquires the lock,
-//                this UUID is writen in the Master field of State-File.
+//                this UUID is written in the Master field of State-File.
 //
 //  return value
 //    TRUE: Locked by this host
@@ -539,7 +538,7 @@ lm_request_lock(
 //  Release the lock.
 //
 //
-//  paramaters
+//  parameters
 //
 //  return value
 //
@@ -556,7 +555,7 @@ lm_cancel_lock()
     pthread_cond_broadcast(&lmvar.cond);
     pthread_mutex_unlock(&lmvar.mutex);
 
-    // wait until cancel is acknoledged
+    // wait until cancel is acknowledged
     pthread_mutex_lock(&lmvar.mutex);
     while (lmvar.cancel_request)
     {
@@ -579,7 +578,7 @@ lm_cancel_lock()
 //  Lock manager thread
 //
 //
-//  paramaters
+//  parameters
 //
 //  return value
 //
@@ -703,7 +702,7 @@ lock_mgr(
 //  is updated.
 //
 //
-//  paramaters
+//  parameters
 //   Handle: Object handle
 //   Buffer: State-File data
 //
@@ -738,7 +737,7 @@ lm_sf_updated(
 //  is updated.
 //
 //
-//  paramaters
+//  parameters
 //   Handle: Object handle
 //   Buffer: State Manager data
 //
@@ -773,7 +772,7 @@ lm_sm_updated(
 //  priority than this (calling) host.
 //
 //
-//  paramaters
+//  parameters
 //   node_index: specify host by node index
 //
 //  return value
@@ -798,7 +797,7 @@ is_equal_or_prior_to_this_node(
 //  This function returns TRUE if the specified host is online
 //
 //
-//  paramaters
+//  parameters
 //   node_index: specify host by node index
 //
 //  return value
@@ -822,7 +821,7 @@ is_online(
 //  This function returns TRUE if calling host is allowed to request the lock
 //
 //
-//  paramaters
+//  parameters
 //   node_index: specify host by node index
 //
 //  return value
@@ -864,7 +863,7 @@ am_i_ready_to_request()
 //  This function returns host index that has the lock
 //
 //
-//  paramaters
+//  parameters
 //
 //
 //  return value
@@ -899,7 +898,7 @@ get_lock_node()
 //  This function returns TRUE if the specified host has the lock
 //
 //
-//  paramaters
+//  parameters
 //
 //
 //  return value
@@ -937,7 +936,7 @@ is_locked(
 //  This function returns TRUE if the specified host is requesting the lock
 //
 //
-//  paramaters
+//  parameters
 //   node_index: specify host by node index
 //
 //  return value
@@ -961,7 +960,7 @@ is_requesting(
 //  This function writes Master UUID field of State-File information
 //
 //
-//  paramaters
+//  parameters
 //   uuidMaster: Master UUID to be written in State-File
 //
 //  return value

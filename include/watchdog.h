@@ -21,7 +21,7 @@
 //
 //  DESCRIPTION:
 //
-//      This header file containts 
+//      This header file contains 
 //         external constants
 //         data structures
 //         functions
@@ -151,7 +151,7 @@ watchdog_close(
 //
 //  DESCRIPTION:
 //
-//      Set new timout value for the watchdog instance.
+//      Set new timeout value for the watchdog instance.
 //      The timeout value which was set in previous call is overwritten.
 //      Caller should call next watchdog_set or watchdog_close within 
 //      the timeout. Otherwise, the host is reset by the hypervisor.

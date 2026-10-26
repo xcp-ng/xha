@@ -95,7 +95,7 @@ enum {
 
 //
 //
-//  Static valiables
+//  Static variables
 //
 //
 
@@ -290,7 +290,7 @@ do_hypercall(privcmd_hypercall_t *hypercall, void *arg, size_t argsize, int *ioc
     {
         if (currentstatus == MTC_SUCCESS)
         {
-            log_internal(MTC_LOG_ERR, "WD: cannnot open %s (sys %d).\n", PRIVCMD_PATH, errno);
+            log_internal(MTC_LOG_ERR, "WD: cannot open %s (sys %d).\n", PRIVCMD_PATH, errno);
         }
         return MTC_ERROR_WD_OPEN;
     }
@@ -298,7 +298,7 @@ do_hypercall(privcmd_hypercall_t *hypercall, void *arg, size_t argsize, int *ioc
     {
         if (currentstatus == MTC_SUCCESS)
         {
-            log_internal(MTC_LOG_ERR, "WD: cannnot lock page (sys %d).\n", errno);
+            log_internal(MTC_LOG_ERR, "WD: cannot lock page (sys %d).\n", errno);
         }
         return MTC_ERROR_WD_INSUFFICIENT_RESOURCE;
     }
@@ -306,7 +306,7 @@ do_hypercall(privcmd_hypercall_t *hypercall, void *arg, size_t argsize, int *ioc
     {
         if (currentstatus == MTC_SUCCESS)
         {
-            log_internal(MTC_LOG_ERR, "WD: cannnot lock page (sys %d).\n", errno);
+            log_internal(MTC_LOG_ERR, "WD: cannot lock page (sys %d).\n", errno);
         }
 
         unlock_pages(arg, argsize);
@@ -314,7 +314,7 @@ do_hypercall(privcmd_hypercall_t *hypercall, void *arg, size_t argsize, int *ioc
     }
     if (fist_on("wd.instance.unavailable")) 
     {
-        log_internal(MTC_LOG_INFO, "WD: FIST wd.instance.unavaliable is on\n");
+        log_internal(MTC_LOG_INFO, "WD: FIST wd.instance.unavailable is on\n");
         ret = -999;
     }
     else
@@ -353,7 +353,7 @@ do_hypercall(privcmd_hypercall_t *hypercall, void *arg, size_t argsize, int *ioc
 //
 //      id - watchdog id (0: create)
 //      timeout - watchdog timeout (0: close)
-//      currentstatus - current status for edge trriger logging.
+//      currentstatus - current status for edge trigger logging.
 //                      MTC_SUCCESS: enable log
 //                      other: disable log
 //
@@ -389,7 +389,7 @@ do_watchdog_hypercall(uint32_t *id, uint32_t timeout, MTC_STATUS currentstatus)
         {
             if (currentstatus == MTC_SUCCESS)
             {
-                log_internal(MTC_LOG_ERR, "WD: cannnot lock page (sys %d).\n", errno);
+                log_internal(MTC_LOG_ERR, "WD: cannot lock page (sys %d).\n", errno);
             }
             return MTC_ERROR_WD_INSUFFICIENT_RESOURCE;
         }
@@ -397,7 +397,7 @@ do_watchdog_hypercall(uint32_t *id, uint32_t timeout, MTC_STATUS currentstatus)
         {
             if (currentstatus == MTC_SUCCESS)
             {
-                log_internal(MTC_LOG_ERR, "WD: cannnot lock page (sys %d).\n", errno);
+                log_internal(MTC_LOG_ERR, "WD: cannot lock page (sys %d).\n", errno);
             }
             do_unlock_pages(&arg, sizeof(arg));
             return MTC_ERROR_WD_INSUFFICIENT_RESOURCE;
@@ -431,7 +431,7 @@ do_watchdog_hypercall(uint32_t *id, uint32_t timeout, MTC_STATUS currentstatus)
         {
             if (currentstatus == MTC_SUCCESS)
             {
-                log_internal(MTC_LOG_ERR, "WD: watchdog instance not avaliable (%d).\n", hypercall_ret);
+                log_internal(MTC_LOG_ERR, "WD: watchdog instance not available (%d).\n", hypercall_ret);
             }
             return MTC_ERROR_WD_INSTANCE_UNAVAILABLE;
         }
@@ -481,7 +481,7 @@ do_domain_shutdown_self(MTC_STATUS currentstatus)
         {
             if (currentstatus == MTC_SUCCESS)
             {
-                log_internal(MTC_LOG_ERR, "WD: cannnot lock page (sys %d).\n", errno);
+                log_internal(MTC_LOG_ERR, "WD: cannot lock page (sys %d).\n", errno);
             }
             // ignore failure
             // return MTC_ERROR_WD_INSUFFICIENT_RESOURCE;
@@ -490,7 +490,7 @@ do_domain_shutdown_self(MTC_STATUS currentstatus)
         {
             if (currentstatus == MTC_SUCCESS)
             {
-                log_internal(MTC_LOG_ERR, "WD: cannnot lock page (sys %d).\n", errno);
+                log_internal(MTC_LOG_ERR, "WD: cannot lock page (sys %d).\n", errno);
             }
             // ignore failure
             // do_unlock_pages(&arg, sizeof(arg));
@@ -752,7 +752,7 @@ watchdog_create(
     new = malloc(sizeof(WATCHDOG_INSTANCE));
     if (new == NULL) 
     {
-        log_internal(MTC_LOG_ERR, "WD: cannnot malloc size = %zu.\n", sizeof(WATCHDOG_INSTANCE));
+        log_internal(MTC_LOG_ERR, "WD: cannot malloc size = %zu.\n", sizeof(WATCHDOG_INSTANCE));
         ret = MTC_ERROR_WD_INSUFFICIENT_RESOURCE;
         goto error_return;
     }
@@ -882,7 +882,7 @@ watchdog_close(
 //
 //  DESCRIPTION:
 //
-//      Set new timout value for the watchdog instance.
+//      Set new timeout value for the watchdog instance.
 //      The timeout value which was set in previous call is overwritten.
 //      Caller should call next watchdog_set or watchdog_close within 
 //      the timeout. Otherwise, the host is reset by the hypervisor.

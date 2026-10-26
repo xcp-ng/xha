@@ -38,7 +38,8 @@
 //  PORTABILITY ISSUES:
 //
 
-#include "config.h"
+#include <stdio.h>
+#include "state_checker.h"
 
 //
 //  State-File format version 2 constants

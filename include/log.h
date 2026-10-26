@@ -25,7 +25,7 @@
 //
 //  DESCRIPTION:
 //
-//      This is HA loggin utility interface header file.
+//      This is HA logging utility interface header file.
 //
 //  AUTHORS:
 //
@@ -46,7 +46,7 @@
 
 
 //
-// Use these flags to specify where the message are loged
+// Use these flags to specify where the message are logged
 //
 
 #define MTC_LOG_SYSLOG          (1<<16)
@@ -121,7 +121,7 @@ extern MTC_BOOLEAN privatelogflag;
 //  Initialize logging utility.
 //
 //
-//  paramaters
+//  parameters
 //
 //  return value
 //    0: success
@@ -138,7 +138,7 @@ log_initialize();
 //  This function should be called from ha_log_reopen script
 //  when log files is rotated.
 //
-//  Smaple logrotate config file </etc/logrotate.d/xha>
+//  Sample logrotate config file </etc/logrotate.d/xha>
 //    /var/log/xha.log {
 //          rotate 5
 //          size 100k
@@ -148,7 +148,7 @@ log_initialize();
 //    }
 //
 //
-//  paramaters
+//  parameters
 //
 //  return value
 //    0: success
@@ -164,7 +164,7 @@ log_reopen();
 //  Terminate logging utility.
 //
 //
-//  paramaters
+//  parameters
 //
 //  return value
 //
@@ -178,9 +178,9 @@ log_terminate();
 //  Log a message
 //
 //
-//  paramaters
+//  parameters
 //      priority - log priority value
-//                 The addtional flags, MTC_LOG_PRIVATELOG and/or
+//                 The additional flags, MTC_LOG_PRIVATELOG and/or
 //                 MTC_LOG_SYSLOG is also valid.
 //
 //                 If MTC_LOG_PRIVATELOG flag is set, the message will log to
@@ -204,7 +204,7 @@ __attribute__((format (printf, 2, 3)));
 //  Log binary data
 //
 //
-//  paramaters
+//  parameters
 //      priority - only MTC_LOG_PRIVATE_LOG flag is valid.  The other flags
 //                 are ignored.
 //      data - pointer to the data to be dumped
@@ -306,7 +306,7 @@ log_status(
 //
 //      Issue fsync() for log file.
 //
-//  paramaters
+//  parameters
 //
 //      none
 //
@@ -328,7 +328,7 @@ log_fsync();
 //
 //      Log thread ID.
 //
-//  paramaters
+//  parameters
 //
 //      Thread name.
 //

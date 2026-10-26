@@ -65,6 +65,7 @@
 #include "watchdog.h"
 #include "statefile.h"
 #include "fist.h"
+#include "state_checker.h"
 
 
 
@@ -1025,7 +1026,7 @@ send_hb()
         }
     }
 
-    // compose hearbeat packet
+    // compose heartbeat packet
     pkt.signature = HB_SIG;
     pkt.size = sizeof(pkt);
     UUID_cpy(pkt.generation_uuid, _gen_UUID);
@@ -1065,9 +1066,9 @@ send_hb()
 
         // State Manager information
         pkt.sm_phase = phb->sm_phase[_my_index] = psm->phase;
-        // SR2 flag is requried to copy over heartbeat.
+        // SR2 flag is required to copy over heartbeat.
         // When a new host (probably excluded host) is joining liveset that is
-        // surviving by SR2, the flag need to be copyed to the new host.
+        // surviving by SR2, the flag need to be copied to the new host.
         pkt.SR2 = psm->SR2;
 
         // State File information
@@ -1103,7 +1104,7 @@ send_hb()
     maskable_dump(DUMPPACKET, (void *) &pkt, sizeof(pkt));
 
 
-    // send hearbeat packet
+    // send heartbeat packet
     if (!hb_check_fist("hb.isolate") &&
         !fist_on("hb.send.lostpacket"))
     {
@@ -1342,9 +1343,9 @@ receive_hb()
         MTC_HOSTMAP_SET_BOOLEAN(phb->notjoining, fm_index, !pkt.joining);
 
         // State Manager information
-        // SR2 flag is requried to copy over heartbeat.
+        // SR2 flag is required to copy over heartbeat.
         // When a new host (probably excluded host) is joining liveset that is
-        // surviving by SR2, the flag need to be copyed to the new host.
+        // surviving by SR2, the flag need to be copied to the new host.
         if (pkt.SR2)
         {
             psm->SR2 = pkt.SR2;

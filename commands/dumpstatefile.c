@@ -37,9 +37,7 @@
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <assert.h>
-#include <errno.h>
 #include <pthread.h>
-#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -57,13 +55,7 @@
 
 #include "mtctypes.h"
 #include "mtcerrno.h"
-#include "log.h"
-#include "com.h"
 #include "config.h"
-#include "sm.h"
-#include "xapi_mon.h"
-#include "watchdog.h"
-#include "xha.h"
 #include "statefile.h"
 
 

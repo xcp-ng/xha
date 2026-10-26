@@ -38,12 +38,11 @@
 #define _GNU_SOURCE
 #include <assert.h>
 #include <pthread.h>
-#include <string.h>
-#include <signal.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <inttypes.h>
 
+#include "config.h"
 
 
 //
@@ -57,12 +56,12 @@
 #include "log.h"
 #include "com.h"
 #include "sm.h"
-#include "lock_mgr.h"
 #include "statefile.h"
 #include "xapi_mon.h"
 #include "heartbeat.h"
 #include "watchdog.h"
 #include "fist.h"
+#include "state_checker.h"
 
 
 #define RENDEZVOUS_FAULT_HANDLING   1
@@ -511,7 +510,7 @@ sm_initialize0()
     MTC_HOSTMAP_INIT_RESET(smvar.last_hbdomain);
     MTC_HOSTMAP_INIT_RESET(smvar.last_sfdomain);
 
-    // open refereced objects
+    // open referenced objects
     ret = sm_open_objects();
     if (ret != MTC_SUCCESS)
     {
@@ -1052,7 +1051,7 @@ test_Survival_Rule(
         winner = am_I_in_largest_partition(phb, psf, psf->weight);
         if (winner)
         {
-            log_message(MTC_LOG_DEBUG, "SM: I have won by the result of weight caluculation.\n");
+            log_message(MTC_LOG_DEBUG, "SM: I have won by the result of weight calculation.\n");
         }
     }
 
@@ -1206,7 +1205,7 @@ test_Start_Criteria()
                             START_FLAGS_EXCLUDED: START_FLAGS_NONEXCLUDED;
         MTC_HOSTMAP_DIFFERENCE(sfdomain_nonstarting, '=', sf.sfdomain, '-', sf.starting);
         MTC_HOSTMAP_MASK_UNCONFIG(sfdomain_nonstarting);
-        // if pool is surviving by SR2 and this host can comunicate with all non-excluded hosts
+        // if pool is surviving by SR2 and this host can communicate with all non-excluded hosts
         // by heartbeat, let's think as there is a liveset.
         MTC_HOSTMAP_UNION(hbdomain_or_excluded, '=', hb.hbdomain, '|', sf.excluded);
         if (is_empty_liveset(sfdomain_nonstarting) &&
@@ -1352,7 +1351,7 @@ test_Start_Criteria()
         }
         // No, then...
         // If the pool state is ACTIVE and there is an existing liveset,
-        // then this host must join the liveset.  Comming down here means
+        // then this host must join the liveset.  Coming down here means
         // this host could not join it in timeout period because of partition.
         // Transitional views of partition should be solved in timeout period.
         // We may be treating a few case of transitional partition as parmanent
@@ -1799,7 +1798,7 @@ start_fh(
     if (smvar.SR2 && sf_degraded)
     {
         log_message(MTC_LOG_DEBUG,
-            "SM: degrade on SF domain is ignored becase of SR2.\n");
+            "SM: degrade on SF domain is ignored because of SR2.\n");
         sf_degraded = FALSE;
     }
 
@@ -2658,7 +2657,7 @@ commit_weight()
 }
 
 
-//  Cotroll other objects
+//  Control other objects
 
 MTC_STATIC void
 start_statefile()

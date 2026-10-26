@@ -21,7 +21,7 @@
 //
 //  DESCRIPTION:
 //
-//      This header file containts 
+//      This header file contains 
 //      Config-File information
 //
 //  AUTHORS:

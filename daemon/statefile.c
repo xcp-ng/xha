@@ -581,7 +581,7 @@ sfthread(
                 {
                     print_status = PSTATUS_SUCCESS;
                     log_message(MTC_LOG_NOTICE,
-                                "HA daemon successfuly started acceesing the State-File.\n");
+                                "HA daemon successfully started acceesing the State-File.\n");
                 }
                 break;
 
@@ -723,7 +723,7 @@ readsf()
         sleep(1);
     }
     
-    //  State-File is sccessfully read, or the attempt failed after retries.
+    //  State-File is successfully read, or the attempt failed after retries.
     //  Update SF objects.
 
     com_reader_lock(sm_object, (void **) &psm);
@@ -789,7 +789,7 @@ readsf()
                 psf->time_last_SF[host_index] = sfvar.hoststat[host_index].updateclock;
             }
 
-            //  version 1.1 Collect SM-phase and commited weight of the other hosts
+            //  version 1.1 Collect SM-phase and committed weight of the other hosts
             if (host_index == _my_index)
             {
                 psf->sm_phase[host_index] = psm->phase;
@@ -942,7 +942,7 @@ write_hostspecific()
     MTC_HOSTMAP_COPY(phost->data.hbdomain, phb->hbdomain);
     MTC_HOSTMAP_COPY(phost->data.sfdomain, psf->sfdomain);
 
-    //  version 1.1 Propagate SM-phase and commited weight to
+    //  version 1.1 Propagate SM-phase and committed weight to
     //  the other hosts
     phost->data.sm_phase = psf->sm_phase[_my_index] = psm->phase;
     phost->data.weight = psf->weight[_my_index] = psm->commited_weight;

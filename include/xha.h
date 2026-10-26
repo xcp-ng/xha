@@ -5,6 +5,7 @@
 #ifndef XHA_H
 #define XHA_H (1)    // Set flag indicating this file was included
 
+#include <pthread.h>
 #include "mtctypes.h"
 
 //

@@ -33,15 +33,10 @@
 //--
 //
 
-#include <stdio.h>
-#include <errno.h>
 #include <fcntl.h>
-#include <signal.h>
 #include <sys/resource.h>
 
 #include <assert.h>
-#include <signal.h>
-#include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
@@ -249,7 +244,7 @@ hostweight_set_sm(void)
     COM_DATA_SM *sm = NULL;
     
 
-    // calclate hostweight
+    // calculate hostweight
     hostweight = calc_hostweight();
 
     // update SMOBJECT

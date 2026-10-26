@@ -99,7 +99,7 @@ struct xmlTagParser
 //
 //      copy uuid string removing '-'
 //      check size
-//      check charactor
+//      check character
 //      output does not terminate with '\0'
 //
 //  FORMAL PARAMETERS:
@@ -1298,7 +1298,7 @@ interpret_config_file(
     if ((cur = xmlDocGetRootElement(doc)) == NULL) 
     {
         log_message(MTC_LOG_ERR, "CF: config-file (%s) contains invalid data.\n", path);
-        log_internal(MTC_LOG_ERR, "%s: faild to xmlDocGetRootElement %s\n", __func__, path);
+        log_internal(MTC_LOG_ERR, "%s: failed to xmlDocGetRootElement %s\n", __func__, path);
         xmlFreeDoc(doc);
         return MTC_ERROR_CF_INVALID_FORMAT;
         

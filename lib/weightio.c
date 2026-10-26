@@ -40,10 +40,8 @@
 //
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <ctype.h>
 #include <fcntl.h>
 
 #include <sys/stat.h>
@@ -63,7 +61,6 @@
 
 #include "mtctypes.h"
 #include "mtcerrno.h"
-#include "log.h"
 #include "hostweight.h"
 
 //

@@ -442,7 +442,7 @@ main(
 //  sigcatch may be invoked in any thread context in any time.
 //  Acquiring any lock which does not support recursive in this function causes deadlock.
 //
-//  action.sa_flags is 0, which means that the signal that triggerred the handler
+//  action.sa_flags is 0, which means that the signal that triggered the handler
 //  is automatically blocked already
 //
 

@@ -21,7 +21,7 @@
 //
 //  DESCRIPTION:
 //
-//      This header file containts 
+//      This header file contains 
 //         socketname
 //         data structures
 //      between scripts and script service
@@ -37,9 +37,7 @@
 
 
 #include "mtctypes.h"
-#include "config.h"
 #include "xapi_mon.h"
-#include "hostweight.h"
 
 ////
 //

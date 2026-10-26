@@ -37,15 +37,10 @@
 
 #define _XOPEN_SOURCE 500
 
-#include <stdio.h>
-#include <errno.h>
 #include <fcntl.h>
-#include <signal.h>
 #include <sys/resource.h>
 
 #include <assert.h>
-#include <signal.h>
-#include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
@@ -99,7 +94,7 @@ FIST fisttab[] = {           // @ sticky
     {"bm.interface.degraded",   1}, // bonding interface reports 'degraded', which means
                                     // one of redundant NICs is offline.
 
-    {"wd.instance.unavailable", 1}, // watchdog instance is not avaliable
+    {"wd.instance.unavailable", 1}, // watchdog instance is not available
     {"wd.open",                 1}, // watchdog hypercall open error
 
     {"com.pthread",             0}, // general pthread error in the common object manager,

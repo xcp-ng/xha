@@ -41,6 +41,8 @@
 //--
 //
 
+#include "mtctypes.h"
+
 int
 status_to_exit(
     MTC_STATUS status);

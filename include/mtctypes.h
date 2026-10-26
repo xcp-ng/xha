@@ -2,9 +2,10 @@
 //  MODULE: mtctypes.h
 //
 
-#include "xha.h"
 #ifndef MTCTYPES_H
 #define MTCTYPES_H (1)    // Set flag indicating this file was included
+
+#include <string.h> // IWYU pragma: keep (used in hostmap macros)
 
 //
 //++
@@ -434,7 +435,7 @@ MTC_ASSERT_SIZE(sizeof (void *) == MTC_POINTER_SIZE);
 
 
 //
-// C extention of function name string
+// C extension of function name string
 //
 
 #define __MTC_FUNCTION__ __func__
@@ -600,8 +601,6 @@ typedef MTC_U32 MTC_HOSTMAP[_rounddiv(MAX_HOST_NUM, MTC_HOSTMAP_UNIT)];
     } \
     b1; \
 })
-
-
 
 
 #endif  // MTCTYPES_H

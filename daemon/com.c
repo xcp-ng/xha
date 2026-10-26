@@ -30,18 +30,15 @@
 //   
 
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
 #include <assert.h>
 #include <unistd.h>
-#include <signal.h>
 #include <inttypes.h>
 
 #include "mtctypes.h"
 #include "mtcerrno.h"
-#include "xha.h"
 #include "log.h"
 #include "com.h"
 #include "fist.h"
@@ -71,7 +68,7 @@ static pthread_mutex_t com_mutex;
 
 
 //
-// thread-id reacord for diag of dead-lock
+// thread-id record for diag of dead-lock
 //
 
 #define LOCK_STATE_NONE 0
@@ -208,7 +205,7 @@ new_object_buffer(
 
 
 //
-// examin object handle is Valid or not
+// examine object handle is Valid or not
 // TRUE: Valid
 // FALSE: Invalid
 //
@@ -233,7 +230,7 @@ valid_object_handle(
 }
 
 //
-// examin object is safe to delete
+// examine object is safe to delete
 // TRUE: Valid
 // FALSE: Invalid
 //
@@ -639,7 +636,7 @@ com_log_all_objects(
                 log_bin(MTC_LOG_DEBUG, object->buffer, object->size);
             }
         }
-        // unlock only if trylock suceeded
+        // unlock only if trylock succeeded
         if (pthread_ret == 0) 
         {
             pthread_mutex_unlock(&com_mutex);
@@ -662,7 +659,7 @@ com_log_all_objects(
 //  Initialize HA Common Object Manager.
 //
 //
-//  paramaters
+//  parameters
 //    phase - 0: initialize
 //            1: start
 //           -1: terminate
@@ -714,7 +711,7 @@ com_initialize(
 //  the function returns success with valid ObjectHandle.
 //
 //
-//  paramaters
+//  parameters
 //    object_id: HA Common Object ID
 //    object_handle: Handle of the HA Common Object 
 //    size: data size of the HA Common Object
@@ -868,7 +865,7 @@ com_create(
 //  If the object does not exist, the function returns success 
 //  with valid ObjectHandle.
 //
-//  paramaters
+//  parameters
 //    object_id: HA Common Object ID
 //    object_handle: Handle of the HA Common Object 
 //
@@ -893,7 +890,7 @@ com_open(
 //  Close HA Common Object.
 //
 //
-//  paramaters
+//  parameters
 //    object_handle: Handle of the HA Common Object 
 //
 //  return value
@@ -952,7 +949,7 @@ com_close(
 //  Register callback function which is called when the object
 //  has been modified. The ObjectHandle is passed to the callback function.
 //
-//  paramaters
+//  parameters
 //    object_handle: Handle of the HA Common Object 
 //    func: callback function
 //
@@ -1013,7 +1010,7 @@ com_register_callback(
 //
 //  Deregister callback function.
 //
-//  paramaters
+//  parameters
 //    object_handle: Handle of the HA Common Object 
 //    func: callback function
 //
@@ -1077,10 +1074,10 @@ com_deregister_callback(
 //  Acquire the writer lock for the object.
 //  com_writer_unlock must be called as soon as possible.
 //
-//  paramaters
+//  parameters
 //    object_handle: Handle of the HA Common Object 
 //    buffer: pointer to the HA Common Object data is passed 
-//            when this fucntion returns.
+//            when this function returns.
 //
 //  return value
 //    0: success
@@ -1139,7 +1136,7 @@ com_writer_lock(
 //
 //  Release the writer lock for the object.
 //
-//  paramaters
+//  parameters
 //    object_handle: Handle of the HA Common Object 
 //
 //  return value
@@ -1205,10 +1202,10 @@ com_writer_unlock(
 //  Acquire the reader lock for the object.
 //  com_reader_unlock must be called as soon as possible.
 //
-//  paramaters
+//  parameters
 //    object_handle: Handle of the HA Common Object 
 //    buffer: pointer to the HA Common Object data is passed 
-//            when this fucntion returns.
+//            when this function returns.
 //
 //  return value
 //    0: success
@@ -1265,7 +1262,7 @@ com_reader_lock(
 //
 //  Release the reader lock for the object.
 //
-//  paramaters
+//  parameters
 //    object_handle: Handle of the HA Common Object 
 //
 //  return value
