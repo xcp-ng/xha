@@ -366,16 +366,20 @@ script_service_do_query_liveset(
     }
     else 
     {
-        l->sf_latency = sf->latency;
-        l->sf_latency_max = sf->latency_max;
-        l->sf_latency_min = sf->latency_min;
+        struct Latency latency;
+        stc_get_latency(&latency);
+        l->sf_latency = latency.latest_ms;
+        l->sf_latency_max = latency.max_ms;
+        l->sf_latency_min = latency.min_ms;
 
         // reset latency
         if (l->status == LIVESET_STATUS_ONLINE)
         {
-            sf->latency_min = -1;
-            sf->latency_max = -1;
+            latency.min_ms = -1;
+            latency.max_ms = -1;
         }
+
+        stc_set_latency(&latency);
 
         // check approaching timeout
         // not report approaching timeout if sf_lost is TRUE

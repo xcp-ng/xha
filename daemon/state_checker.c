@@ -30,12 +30,27 @@
 //   
 
 #include "state_checker.h"
+#include <pthread.h>
 
 static bool _stc_is_available = FALSE;
 
 // ctl structs
 static bool _stc_is_starting = FALSE;
 static bool _stc_is_enabled = FALSE;
+
+static struct 
+{
+	bool initialized;
+	struct Latency latency;
+	pthread_mutex_t lock;
+} _stc_latency = {
+	.latency = {
+		.latest_ms = -1,
+		.max_ms = -1,
+		.min_ms = -1,
+	},
+	.lock = PTHREAD_MUTEX_INITIALIZER,
+};
 
 void stc_set_is_available(bool is_available)
 {
@@ -65,4 +80,22 @@ void stc_set_is_enabled(bool is_enabled)
 bool stc_is_enabled()
 {
 	return __atomic_load_n(&_stc_is_enabled, __ATOMIC_SEQ_CST);
+}
+
+void stc_set_latency(const struct Latency *latency)
+{
+	pthread_mutex_lock(&_stc_latency.lock);
+	_stc_latency.latency.latest_ms = latency->latest_ms;
+	_stc_latency.latency.min_ms = latency->min_ms;
+	_stc_latency.latency.max_ms = latency->max_ms;
+	pthread_mutex_unlock(&_stc_latency.lock);
+}
+
+void stc_get_latency(struct Latency *latency)
+{
+	pthread_mutex_lock(&_stc_latency.lock);
+	latency->latest_ms = _stc_latency.latency.latest_ms;
+	latency->min_ms = _stc_latency.latency.min_ms;
+	latency->max_ms = _stc_latency.latency.max_ms;
+	pthread_mutex_unlock(&_stc_latency.lock);
 }

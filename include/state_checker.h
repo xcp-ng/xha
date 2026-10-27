@@ -41,6 +41,13 @@ extern "C"
 
 #include "mtctypes.h"
 
+struct Latency
+{
+    MTC_S32 latest_ms;
+    MTC_S32 min_ms;
+    MTC_S32 max_ms;
+};
+
 /**
  * Return availability of the state_checker
  * If this is TRUE, it means that we can reach the backend
@@ -80,6 +87,21 @@ void stc_set_is_enabled(bool is_enabled);
  * See stc_set_is_enabled for purpose.
  **/
 bool stc_is_enabled();
+
+
+/**
+ * Set latency of the state_checker
+ * Latency is in ms
+ **/
+void stc_set_latency(const struct Latency *latency);
+
+/**
+ * Get latency of the state_checker
+ * The provided struct will be filled with a copy
+ * of the latest values
+ * Latency is in ms
+ **/
+void stc_get_latency(struct Latency *latency);
 
 typedef enum {
     FENCING_NONE,
@@ -179,10 +201,6 @@ typedef struct _COM_DATA_SF
     MTC_HOSTMAP excluded;                   // Bit-on if the corresponding host has been excluded.
     MTC_HOSTMAP starting;                   // Bit-on if the corresponding host is starting.
     RAW_DATA    raw[MAX_HOST_NUM];          // Array of raw data as seen by each host
-
-    MTC_S32 latency;                        // State-Fie access latency in ms (latest)
-    MTC_S32 latency_max;                    // State-Fie access latency in ms (max since the last query_liveset)
-    MTC_S32 latency_min;                    // State-Fie access latency in ms (min since the last query_liveset)
 
     MTC_HOSTMAP sfdomain;                   // ON if the host looks active on the State File
     MTC_FENCING_MODE fencing;               // Fencing mode (NULL->ARMED->DISARM_REQUESTED->DISARMED)

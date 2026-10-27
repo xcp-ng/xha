@@ -359,7 +359,12 @@ sf_initialize0()
         sfobj.raw[host].time_since_xapi_restart = -1;
     }
 
-    sfobj.latency = sfobj.latency_max = sfobj.latency_min = -1;
+    stc_set_latency(&(struct Latency)
+    {
+        .latest_ms = -1,
+        .min_ms = -1,
+        .max_ms = -1,
+    });
 
     sfobj.fencing = FENCING_ARMED;
 
@@ -493,7 +498,6 @@ sfthread(
     void *ignore)
 {
     MTC_CLOCK last, now, target;
-    PCOM_DATA_SF psf;
     MTC_BOOLEAN readable, writable;
     MTC_STATUS status;
     MTC_BOOLEAN read_once = FALSE;
@@ -801,23 +805,28 @@ readsf()
 
         // latency
 
-        psf->latency = _max(sfvar.readlatency.last, sfvar.writelatency.last);
-        
-        max = _max(sfvar.readlatency.max, sfvar.writelatency.max);
-        min = _min(sfvar.readlatency.min, sfvar.writelatency.min);
-
-        if (max > psf->latency_max)
         {
-            psf->latency_max = max;
-        }
-        
-        if (psf->latency_min < 0 || min < psf->latency_min)
-        {
-            psf->latency_min = min;
-        }
+            struct Latency latency;
+            stc_get_latency(&latency);
+            latency.latest_ms = _max(sfvar.readlatency.last, sfvar.writelatency.last);
+            
+            max = _max(sfvar.readlatency.max, sfvar.writelatency.max);
+            min = _min(sfvar.readlatency.min, sfvar.writelatency.min);
 
-        sfvar.readlatency.max = sfvar.writelatency.max = -1;
-        sfvar.readlatency.min = sfvar.writelatency.min = -1;
+            if (max > latency.max_ms)
+            {
+                latency.max_ms = max;
+            }
+            
+            if (latency.min_ms < 0 || min < latency.min_ms)
+            {
+                latency.min_ms = min;
+            }
+
+            sfvar.readlatency.max = sfvar.writelatency.max = -1;
+            sfvar.readlatency.min = sfvar.writelatency.min = -1;
+            stc_set_latency(&latency);
+        }
 
         //  SF_access
         sf_lock();
