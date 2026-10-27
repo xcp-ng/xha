@@ -67,6 +67,20 @@ void stc_set_is_starting(bool is_starting);
  **/
 bool stc_is_starting();
 
+/**
+ * Enable/disable the state_checker.
+ * If enabled, the state_cheker allows calling
+ * statescripts and reading/writing statefiles.
+ * If disabled, it prevents it.
+ **/
+void stc_set_is_enabled(bool is_enabled);
+
+/**
+ * Check if the state_checker is enabled.
+ * See stc_set_is_enabled for purpose.
+ **/
+bool stc_is_enabled();
+
 typedef enum {
     FENCING_NONE,
     FENCING_ARMED,
@@ -147,14 +161,6 @@ typedef struct _COM_DATA_SF
 #define SF_MODIFIED_MASK_POOL_STATE     (1 << 0)
 #define SF_MODIFIED_MASK_MASTER         (1 << 1)
 #define SF_MODIFIED_MASK_EXCLUDED       (1 << 2)
-
-    //  Set by the State Manager (sm)
-    //  Referenced by the State-File handler (sf)
-    
-    struct {
-        MTC_BOOLEAN enable_SF_write;
-        MTC_BOOLEAN enable_SF_read;
-    } ctl;
 
     //  Set and referenced by the State-File handler (sf)
     //  and by the lock manager (lm)

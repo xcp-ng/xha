@@ -35,6 +35,7 @@ static bool _stc_is_available = FALSE;
 
 // ctl structs
 static bool _stc_is_starting = FALSE;
+static bool _stc_is_enabled = FALSE;
 
 void stc_set_is_available(bool is_available)
 {
@@ -54,4 +55,14 @@ void stc_set_is_starting(bool is_starting)
 bool stc_is_starting()
 {
 	return __atomic_load_n(&_stc_is_starting, __ATOMIC_SEQ_CST);
+}
+
+void stc_set_is_enabled(bool is_enabled)
+{
+	__atomic_store_n(&_stc_is_enabled, is_enabled, __ATOMIC_SEQ_CST);
+}
+
+bool stc_is_enabled()
+{
+	return __atomic_load_n(&_stc_is_enabled, __ATOMIC_SEQ_CST);
 }

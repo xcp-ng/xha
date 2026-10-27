@@ -422,7 +422,6 @@ sm_initialize(
         {
             PCOM_DATA_SM        psm;
             PCOM_DATA_HB        phb;
-            PCOM_DATA_SF        psf;
             PCOM_DATA_XAPIMON   pxapimon;
 
             com_writer_lock(sm_object, (void **) &psm);
@@ -434,10 +433,7 @@ sm_initialize(
             phb->ctl.enable_HB_receive = FALSE;
             com_writer_unlock(hb_object);
 
-            com_writer_lock(sf_object, (void **) &psf);
-            psf->ctl.enable_SF_read = FALSE;
-            psf->ctl.enable_SF_write = FALSE;
-            com_writer_unlock(sf_object);
+            stc_set_is_enabled(FALSE);
 
             com_writer_lock(xapimon_object, (void **) &pxapimon);
             pxapimon->ctl.enable_Xapi_monitor = FALSE;
@@ -668,7 +664,6 @@ sm_abort(
 {
     PCOM_DATA_SM        psm;
     PCOM_DATA_HB        phb;
-    PCOM_DATA_SF        psf;
     PCOM_DATA_XAPIMON   pxapimon;
 
     log_status(code, msg);
@@ -683,10 +678,7 @@ sm_abort(
     phb->ctl.enable_HB_receive = FALSE;
     com_writer_unlock(hb_object);
 
-    com_writer_lock(sf_object, (void **) &psf);
-    psf->ctl.enable_SF_read = FALSE;
-    psf->ctl.enable_SF_write = FALSE;
-    com_writer_unlock(sf_object);
+    stc_set_is_enabled(FALSE);
 
     com_writer_lock(xapimon_object, (void **) &pxapimon);
     pxapimon->ctl.enable_Xapi_monitor = FALSE;
@@ -1893,7 +1885,7 @@ update_sfdomain_sub(
 
         for (index = 0; _is_configured_host(index); index++)
         {
-            if (index == _my_index && !psf->ctl.enable_SF_write)
+            if (index == _my_index && !stc_is_enabled())
             {
                 hostmap[index] = (stc_is_available())? 'D': 'd';
                 if (MTC_HOSTMAP_ISON(psf->sfdomain, index))
@@ -2662,21 +2654,14 @@ commit_weight()
 MTC_STATIC void
 start_statefile()
 {
-    PCOM_DATA_SF    psf;
-
-    com_writer_lock(sf_object, (void **) &psf);
     stc_set_is_starting(TRUE);
-    psf->ctl.enable_SF_read = TRUE;
-    psf->ctl.enable_SF_write = TRUE;
-    com_writer_unlock(sf_object);
+    stc_set_is_enabled(TRUE);
 }
 
 
 MTC_STATIC void
 clear_statefile_starting()
 {
-    PCOM_DATA_SF    psf;
-
     stc_set_is_starting(FALSE);
 }
 

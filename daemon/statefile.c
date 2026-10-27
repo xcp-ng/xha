@@ -331,8 +331,7 @@ sf_initialize0()
     // used as a template to initialize SF object
 
     sfobj.modified_mask = SF_MODIFIED_MASK_NONE;
-    sfobj.ctl.enable_SF_write = FALSE;
-    sfobj.ctl.enable_SF_read = FALSE;
+    stc_set_is_enabled(FALSE);
     for (host = 0; host < MAX_HOST_NUM; host++)
     {
         sfobj.time_last_SF[host] = -1;
@@ -537,10 +536,7 @@ sfthread(
         }
         sf_unlock();
 
-        com_writer_lock(sf_object, (void **) &psf);
-        writable = psf->ctl.enable_SF_write;
-        readable = psf->ctl.enable_SF_read;
-        com_writer_unlock(sf_object);
+        writable = readable = stc_is_enabled();
 
         //  Now it's time to start this cycle of State-File access
 
