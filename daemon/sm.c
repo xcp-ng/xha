@@ -2665,7 +2665,7 @@ start_statefile()
     PCOM_DATA_SF    psf;
 
     com_writer_lock(sf_object, (void **) &psf);
-    psf->ctl.starting = TRUE;
+    stc_set_is_starting(TRUE);
     psf->ctl.enable_SF_read = TRUE;
     psf->ctl.enable_SF_write = TRUE;
     com_writer_unlock(sf_object);
@@ -2677,9 +2677,7 @@ clear_statefile_starting()
 {
     PCOM_DATA_SF    psf;
 
-    com_writer_lock(sf_object, (void **) &psf);
-    psf->ctl.starting = FALSE;
-    com_writer_unlock(sf_object);
+    stc_set_is_starting(FALSE);
 }
 
 MTC_STATIC void

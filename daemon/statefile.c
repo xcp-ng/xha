@@ -972,7 +972,7 @@ write_hostspecific()
 
     // starting
 
-    phost->data.starting = psf->ctl.starting;
+    phost->data.starting = stc_is_starting();
 
     // release reader_locks
     com_reader_unlock(xapimon_object);

@@ -54,6 +54,19 @@ bool stc_is_available();
  **/
 void stc_set_is_available(bool is_available);
 
+/**
+ * Mark the state_checker as starting.
+ * This is used for thread synchronization
+ * and signaling other remote instance that our state
+ * isn't reliable yet.
+ **/
+void stc_set_is_starting(bool is_starting);
+
+/**
+ * Check if the state_checker is starting
+ **/
+bool stc_is_starting();
+
 typedef enum {
     FENCING_NONE,
     FENCING_ARMED,
@@ -141,7 +154,6 @@ typedef struct _COM_DATA_SF
     struct {
         MTC_BOOLEAN enable_SF_write;
         MTC_BOOLEAN enable_SF_read;
-        MTC_BOOLEAN starting;
     } ctl;
 
     //  Set and referenced by the State-File handler (sf)
