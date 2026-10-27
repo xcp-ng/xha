@@ -37,9 +37,7 @@
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <assert.h>
-#include <errno.h>
 #include <pthread.h>
-#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -57,13 +55,7 @@
 
 #include "mtctypes.h"
 #include "mtcerrno.h"
-#include "log.h"
-#include "com.h"
 #include "config.h"
-#include "sm.h"
-#include "xapi_mon.h"
-#include "watchdog.h"
-#include "xha.h"
 #include "statefile.h"
 
 
@@ -202,7 +194,7 @@ global_init_state(
         return status;
     }
 
-    //  build the global section maually
+    //  build the global section manually
 
     UUID_cpy(StateFile.global.data.gen_uuid, _gen_UUID);
     StateFile.global.data.pool_state = SF_STATE_INIT;

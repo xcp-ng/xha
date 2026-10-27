@@ -37,12 +37,7 @@
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <assert.h>
-#include <errno.h>
 #include <pthread.h>
-#include <signal.h>
-#include <stdlib.h>
-#include <string.h>
-#include <strings.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -55,7 +50,6 @@
 //
 //
 
-#include "mtctypes.h"
 #define MTC_NEED_ERROR_TABLE
 #include "mtcerrno.h"
 

@@ -35,6 +35,8 @@
 //
 //   
 
+#include "mtctypes.h"
+
 #ifdef NDEBUG
 
 #define fist_initialize()

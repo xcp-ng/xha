@@ -5,6 +5,8 @@
 #ifndef MTCTYPES_H
 #define MTCTYPES_H (1)    // Set flag indicating this file was included
 
+#include <string.h> // IWYU pragma: keep (used in hostmap macros)
+
 //
 //++
 //      Copyright (c) Stratus Technologies Bermuda Ltd., 2008.
@@ -433,7 +435,7 @@ MTC_ASSERT_SIZE(sizeof (void *) == MTC_POINTER_SIZE);
 
 
 //
-// C extention of function name string
+// C extension of function name string
 //
 
 #define __MTC_FUNCTION__ __func__
@@ -460,6 +462,145 @@ MTC_ASSERT_SIZE(sizeof (void *) == MTC_POINTER_SIZE);
 
 #define MTC_STATIC
 
+
+//
+//  Utility macro to handle per-host bitmap
+#define MAX_HOST_NUM 64
+
+#define MTC_HOSTMAP_UNIT            (sizeof(MTC_U32) * 8)
+
+typedef MTC_U32 MTC_HOSTMAP[_rounddiv(MAX_HOST_NUM, MTC_HOSTMAP_UNIT)];
+
+#define _element(hostnum)       ((hostnum) / MTC_HOSTMAP_UNIT)
+#define _bitloc(hostnum)        (1 << ((hostnum) % MTC_HOSTMAP_UNIT))
+
+#define MTC_HOSTMAP_SET(b, hostnum)  ((b)[_element(hostnum)] |=  _bitloc(hostnum))
+#define MTC_HOSTMAP_RESET(b, hostnum)((b)[_element(hostnum)] &= ~_bitloc(hostnum))
+#define MTC_HOSTMAP_ISON(b, hostnum) (((b)[_element(hostnum)] &  _bitloc(hostnum)) != 0)
+#define MTC_HOSTMAP_SET_BOOLEAN(b, hostnum, boolean) \
+( \
+    (boolean) ? MTC_HOSTMAP_SET(b, hostnum) \
+              : MTC_HOSTMAP_RESET(b, hostnum) \
+)
+#define MTC_HOSTMAP_INIT_RESET(b) ({ \
+    assert(sizeof(b) == sizeof(MTC_HOSTMAP)); \
+    int i; \
+    for (i = 0; i < _rounddiv(MAX_HOST_NUM, MTC_HOSTMAP_UNIT); i++) \
+    { \
+        (b)[i] = 0; \
+    } \
+    0; \
+})
+
+#define MTC_HOSTMAP_INIT_SET(b) ({ \
+    assert(sizeof(b) == sizeof(MTC_HOSTMAP)); \
+    int i; \
+    for (i = 0; i < _rounddiv(MAX_HOST_NUM, MTC_HOSTMAP_UNIT); i++) \
+    { \
+        (b)[i] = ~0; \
+    } \
+    ~0; \
+})
+
+#define MTC_HOSTMAP_COPY(dst, src) ( \
+    assert(sizeof(dst) == sizeof(MTC_HOSTMAP) && sizeof(src) == sizeof(MTC_HOSTMAP)), \
+    memcpy((dst), (src), sizeof(MTC_HOSTMAP)) \
+)
+
+#define MTC_HOSTMAP_COMPARE(b1, OP, b2) ({ \
+    assert(OP == '!=' || OP == '<>' || OP == '><'); \
+    assert(sizeof(b1) == sizeof(MTC_HOSTMAP) && sizeof(b2) == sizeof(MTC_HOSTMAP)); \
+    int i, ret = 0; \
+    for (i = 0; i < _rounddiv(MAX_HOST_NUM, MTC_HOSTMAP_UNIT); i++) \
+    { \
+        if ((b1)[i] - (b2)[i]) \
+        { \
+            ret = 1; \
+            break; \
+        } \
+    } \
+    ret; \
+})
+
+#define MTC_HOSTMAP_SUBSETEQUAL(b1, OP, b2) ({ \
+    assert(sizeof(b1) == sizeof(MTC_HOSTMAP) && sizeof(b2) == sizeof(MTC_HOSTMAP)); \
+    assert(OP == '(=' || OP == '<='); \
+    int i, ret = 1; \
+    for (i = 0; i < MAX_HOST_NUM; i++) \
+    { \
+        if (MTC_HOSTMAP_ISON(b1, i) && !MTC_HOSTMAP_ISON(b2, i)) \
+        { \
+            ret = 0; \
+            break; \
+        } \
+    } \
+    ret; \
+})
+
+#define MTC_HOSTMAP_DIFFERENCE(b1, EQ, b2, OP, b3) ({ \
+    assert(sizeof(b1) == sizeof(MTC_HOSTMAP) && sizeof(b2) == sizeof(MTC_HOSTMAP) \
+                                             && sizeof(b3) == sizeof(MTC_HOSTMAP)); \
+    assert(EQ == '=' || EQ == ':=' || EQ == '<-'); \
+    assert(OP == '-'); \
+    int i; \
+    for (i = 0; i < _rounddiv(MAX_HOST_NUM, MTC_HOSTMAP_UNIT); i++) \
+    { \
+        b1[i] = b2[i] & ~b3[i]; \
+    } \
+    b1; \
+})
+
+#define MTC_HOSTMAP_UNION(b1, EQ, b2, OP, b3) ({ \
+    assert(sizeof(b1) == sizeof(MTC_HOSTMAP) && sizeof(b2) == sizeof(MTC_HOSTMAP) \
+                                             && sizeof(b3) == sizeof(MTC_HOSTMAP)); \
+    assert(EQ == '=' || EQ == ':=' || EQ == '<-'); \
+    assert(OP == '|' || EQ == 'OR' || EQ == '+' || \
+            EQ == 'u' || EQ == 'U' || EQ == 'v' || EQ == 'V'); \
+    int i; \
+    for (i = 0; i < _rounddiv(MAX_HOST_NUM, MTC_HOSTMAP_UNIT); i++) \
+    { \
+        b1[i] = b2[i] | b3[i]; \
+    } \
+    b1; \
+})
+
+#define MTC_HOSTMAP_INTERSECTION(b1, EQ, b2, OP, b3) ({ \
+    assert(sizeof(b1) == sizeof(MTC_HOSTMAP) && sizeof(b2) == sizeof(MTC_HOSTMAP) \
+                                             && sizeof(b3) == sizeof(MTC_HOSTMAP)); \
+    assert(EQ == '=' || EQ == ':=' || EQ == '<-'); \
+    assert(OP == '&' || EQ == 'AND' || EQ == '+' || EQ == '^'); \
+    int i; \
+    for (i = 0; i < _rounddiv(MAX_HOST_NUM, MTC_HOSTMAP_UNIT); i++) \
+    { \
+        b1[i] = b2[i] & b3[i]; \
+    } \
+    b1; \
+})
+
+#define MTC_HOSTMAP_COMPLEMENT(b1, EQ, OP, b2) ({ \
+    assert(sizeof(b1) == sizeof(MTC_HOSTMAP) && sizeof(b2) == sizeof(MTC_HOSTMAP)); \
+    assert(EQ == '=' || EQ == ':=' || EQ == '<-'); \
+    assert(OP == '~' || EQ == 'NOT' || EQ == '!'); \
+    int i; \
+    for (i = 0; i < _rounddiv(MAX_HOST_NUM, MTC_HOSTMAP_UNIT); i++) \
+    { \
+        b1[i] = ~(b2[i]); \
+    } \
+    b1; \
+})
+
+#define MTC_HOSTMAP_MASK_UNCONFIG(b1) ({ \
+    assert(sizeof(b1) == sizeof(MTC_HOSTMAP)); \
+    int i; \
+    for (i = 0; i < MAX_HOST_NUM; i++) \
+    { \
+        if (!_is_configured_host(i)) \
+        { \
+            MTC_HOSTMAP_RESET(b1, i); \
+        } \
+    } \
+    b1; \
+})
 
 
 #endif  // MTCTYPES_H

@@ -28,6 +28,7 @@ OBJS    +=$(OBJDIR)/watchdog.o
 OBJS    +=$(OBJDIR)/xapi_mon.o
 OBJS    +=$(OBJDIR)/fist.o
 OBJS    +=$(OBJDIR)/hostweight.o
+OBJS    +=$(OBJDIR)/state_checker.o
 
 all: $(TARGET) $(LST)
 
@@ -72,5 +73,7 @@ $(OBJDIR)/xapi_mon.o: xapi_mon.c  $(INCDIR)/*.h
 $(OBJDIR)/fist.o: fist.c  $(INCDIR)/*.h
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 $(OBJDIR)/hostweight.o: hostweight.c  $(INCDIR)/*.h
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+$(OBJDIR)/state_checker.o: state_checker.c  $(INCDIR)/*.h
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 

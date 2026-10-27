@@ -38,12 +38,11 @@
 #define _GNU_SOURCE
 #include <assert.h>
 #include <pthread.h>
-#include <string.h>
-#include <signal.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <inttypes.h>
 
+#include "config.h"
 
 
 //
@@ -57,12 +56,12 @@
 #include "log.h"
 #include "com.h"
 #include "sm.h"
-#include "lock_mgr.h"
 #include "statefile.h"
 #include "xapi_mon.h"
 #include "heartbeat.h"
 #include "watchdog.h"
 #include "fist.h"
+#include "state_checker.h"
 
 
 #define RENDEZVOUS_FAULT_HANDLING   1
@@ -423,7 +422,6 @@ sm_initialize(
         {
             PCOM_DATA_SM        psm;
             PCOM_DATA_HB        phb;
-            PCOM_DATA_SF        psf;
             PCOM_DATA_XAPIMON   pxapimon;
 
             com_writer_lock(sm_object, (void **) &psm);
@@ -435,10 +433,7 @@ sm_initialize(
             phb->ctl.enable_HB_receive = FALSE;
             com_writer_unlock(hb_object);
 
-            com_writer_lock(sf_object, (void **) &psf);
-            psf->ctl.enable_SF_read = FALSE;
-            psf->ctl.enable_SF_write = FALSE;
-            com_writer_unlock(sf_object);
+            stc_set_is_enabled(FALSE);
 
             com_writer_lock(xapimon_object, (void **) &pxapimon);
             pxapimon->ctl.enable_Xapi_monitor = FALSE;
@@ -511,7 +506,7 @@ sm_initialize0()
     MTC_HOSTMAP_INIT_RESET(smvar.last_hbdomain);
     MTC_HOSTMAP_INIT_RESET(smvar.last_sfdomain);
 
-    // open refereced objects
+    // open referenced objects
     ret = sm_open_objects();
     if (ret != MTC_SUCCESS)
     {
@@ -669,7 +664,6 @@ sm_abort(
 {
     PCOM_DATA_SM        psm;
     PCOM_DATA_HB        phb;
-    PCOM_DATA_SF        psf;
     PCOM_DATA_XAPIMON   pxapimon;
 
     log_status(code, msg);
@@ -684,10 +678,7 @@ sm_abort(
     phb->ctl.enable_HB_receive = FALSE;
     com_writer_unlock(hb_object);
 
-    com_writer_lock(sf_object, (void **) &psf);
-    psf->ctl.enable_SF_read = FALSE;
-    psf->ctl.enable_SF_write = FALSE;
-    com_writer_unlock(sf_object);
+    stc_set_is_enabled(FALSE);
 
     com_writer_lock(xapimon_object, (void **) &pxapimon);
     pxapimon->ctl.enable_Xapi_monitor = FALSE;
@@ -1052,7 +1043,7 @@ test_Survival_Rule(
         winner = am_I_in_largest_partition(phb, psf, psf->weight);
         if (winner)
         {
-            log_message(MTC_LOG_DEBUG, "SM: I have won by the result of weight caluculation.\n");
+            log_message(MTC_LOG_DEBUG, "SM: I have won by the result of weight calculation.\n");
         }
     }
 
@@ -1067,7 +1058,7 @@ test_Survival_Rule(
         // Check if Survival Rule-2
         for (index = 0; _is_configured_host(index); index++)
         {
-            sf_access = (index == _my_index)? psf->SF_access: MTC_HOSTMAP_ISON(phb->raw[index].sfdomain, index);
+            sf_access = (index == _my_index)?stc_is_available(): MTC_HOSTMAP_ISON(phb->raw[index].sfdomain, index);
             excluded = MTC_HOSTMAP_ISON(psf->excluded, index);
             in_hbd = MTC_HOSTMAP_ISON(hbd, index);
 
@@ -1191,10 +1182,10 @@ test_Start_Criteria()
 
 
         // Still have State File access?
-        if (!sf.SF_access)
+        if (!stc_is_available())
         {
             log_internal(MTC_LOG_ERR,
-                        "Start Criteria: lost the state file access while starting.\n");
+                        "Start Criteria: the state_checker is down while starting.\n");
             return MTC_ERROR_SM_NOSTATEFILE;
         }
 
@@ -1206,7 +1197,7 @@ test_Start_Criteria()
                             START_FLAGS_EXCLUDED: START_FLAGS_NONEXCLUDED;
         MTC_HOSTMAP_DIFFERENCE(sfdomain_nonstarting, '=', sf.sfdomain, '-', sf.starting);
         MTC_HOSTMAP_MASK_UNCONFIG(sfdomain_nonstarting);
-        // if pool is surviving by SR2 and this host can comunicate with all non-excluded hosts
+        // if pool is surviving by SR2 and this host can communicate with all non-excluded hosts
         // by heartbeat, let's think as there is a liveset.
         MTC_HOSTMAP_UNION(hbdomain_or_excluded, '=', hb.hbdomain, '|', sf.excluded);
         if (is_empty_liveset(sfdomain_nonstarting) &&
@@ -1352,7 +1343,7 @@ test_Start_Criteria()
         }
         // No, then...
         // If the pool state is ACTIVE and there is an existing liveset,
-        // then this host must join the liveset.  Comming down here means
+        // then this host must join the liveset.  Coming down here means
         // this host could not join it in timeout period because of partition.
         // Transitional views of partition should be solved in timeout period.
         // We may be treating a few case of transitional partition as parmanent
@@ -1708,7 +1699,7 @@ surviving_by_SR2()
     {
         if (index == _my_index)
         {
-            if (!psf->SF_access)
+            if (!stc_is_available())
             {
                 recovered = FALSE;
             }
@@ -1799,7 +1790,7 @@ start_fh(
     if (smvar.SR2 && sf_degraded)
     {
         log_message(MTC_LOG_DEBUG,
-            "SM: degrade on SF domain is ignored becase of SR2.\n");
+            "SM: degrade on SF domain is ignored because of SR2.\n");
         sf_degraded = FALSE;
     }
 
@@ -1894,9 +1885,9 @@ update_sfdomain_sub(
 
         for (index = 0; _is_configured_host(index); index++)
         {
-            if (index == _my_index && !psf->ctl.enable_SF_write)
+            if (index == _my_index && !stc_is_enabled())
             {
-                hostmap[index] = (psf->SF_access)? 'D': 'd';
+                hostmap[index] = (stc_is_available())? 'D': 'd';
                 if (MTC_HOSTMAP_ISON(psf->sfdomain, index))
                 {
                     if (writable)
@@ -1936,7 +1927,7 @@ update_sfdomain_sub(
                 {
                     if (writable)
                     {
-                        psf->SF_access = FALSE;
+                       stc_set_is_available(FALSE);
                     }
                 }
 
@@ -2658,29 +2649,20 @@ commit_weight()
 }
 
 
-//  Cotroll other objects
+//  Control other objects
 
 MTC_STATIC void
 start_statefile()
 {
-    PCOM_DATA_SF    psf;
-
-    com_writer_lock(sf_object, (void **) &psf);
-    psf->ctl.starting = TRUE;
-    psf->ctl.enable_SF_read = TRUE;
-    psf->ctl.enable_SF_write = TRUE;
-    com_writer_unlock(sf_object);
+    stc_set_is_starting(TRUE);
+    stc_set_is_enabled(TRUE);
 }
 
 
 MTC_STATIC void
 clear_statefile_starting()
 {
-    PCOM_DATA_SF    psf;
-
-    com_writer_lock(sf_object, (void **) &psf);
-    psf->ctl.starting = FALSE;
-    com_writer_unlock(sf_object);
+    stc_set_is_starting(FALSE);
 }
 
 MTC_STATIC void

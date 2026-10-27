@@ -31,16 +31,12 @@
 
 #include <stdio.h>
 #include <stdarg.h>
-#include <string.h>
-#include <errno.h>
 #include <pthread.h>
 #include <semaphore.h>
-#include <ctype.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 
 #include "mtctypes.h"
-#include "mtcerrno.h"
 #include "log.h"
 
 void

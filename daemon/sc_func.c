@@ -32,7 +32,6 @@
 //
 //   
 
-#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -41,18 +40,21 @@
 #include <assert.h>
 #include <inttypes.h>
 
+#include "config.h"
 #include "mtctypes.h"
 #include "mtcerrno.h"
 #include "log.h"
 #include "com.h"
 #include "script.h"
 #include "sm.h"
+#include "state_checker.h"
 #include "xapi_mon.h"
 #include "bond_mon.h"
 #include "lock_mgr.h"
 #include "statefile.h"
 #include "buildid.h"
 #include "fist.h"
+#include "hostweight.h"
 
 //
 //
@@ -232,8 +234,6 @@ script_service_do_query_liveset(
         for (host_index = 0; host_index < _num_host; host_index++) 
         {
             l->host[host_index].liveness = MTC_HOSTMAP_ISON(sm->current_liveset, host_index)?TRUE:FALSE;
-            // l->host[host_index].excluded = MTC_HOSTMAP_ISON(sm->excluded, host_index)?TRUE:FALSE;
-            // l->host[host_index].sf_access = (l->host[host_index].liveness)?(MTC_HOSTMAP_ISON(sm->sf_access, host_index)?TRUE:FALSE):FALSE;
             l->host[host_index].sf_corrupted = MTC_HOSTMAP_ISON(sm->sf_corrupted, host_index)?TRUE:FALSE;
         }
         l->sf_lost = sm->SR2;
@@ -366,16 +366,20 @@ script_service_do_query_liveset(
     }
     else 
     {
-        l->sf_latency = sf->latency;
-        l->sf_latency_max = sf->latency_max;
-        l->sf_latency_min = sf->latency_min;
+        struct Latency latency;
+        stc_get_latency(&latency);
+        l->sf_latency = latency.latest_ms;
+        l->sf_latency_max = latency.max_ms;
+        l->sf_latency_min = latency.min_ms;
 
         // reset latency
         if (l->status == LIVESET_STATUS_ONLINE)
         {
-            sf->latency_min = -1;
-            sf->latency_max = -1;
+            latency.min_ms = -1;
+            latency.max_ms = -1;
         }
+
+        stc_set_latency(&latency);
 
         // check approaching timeout
         // not report approaching timeout if sf_lost is TRUE
@@ -409,7 +413,7 @@ script_service_do_query_liveset(
 
                     if (host_index == _my_index) 
                     {
-                        l->host[host_index].sf_access = (sf->SF_access)?TRUE:FALSE;
+                        l->host[host_index].sf_access = (stc_is_available())?TRUE:FALSE;
                     }
                     else
                     {
@@ -497,7 +501,6 @@ script_service_do_query_liveset(
         }
         l->host[_my_index].sf_corrupted = (sf->SF_corrupted)?TRUE:FALSE;
 
-        // l->sf_lost = (sf->SF_access)?FALSE:TRUE;
     }
     com_writer_unlock(h_sf);
     com_close(h_sf);
@@ -696,7 +699,7 @@ script_service_do_propose_master(
     }
 
     //
-    // aquire lock
+    // acquire lock
     //
 
     p->accepted_as_master = lm_request_lock(_my_UUID);
@@ -933,7 +936,7 @@ script_service_do_disarm_fencing(
     com_writer_unlock(h_sf);
 
     //
-    // wait disarm fencing complation to SM
+    // wait disarm fencing completion to SM
     //
 
     fencing = FENCING_NONE;
@@ -985,7 +988,7 @@ script_service_do_disarm_fencing(
     }
 
     //
-    // wait disarm fencing complation to SF
+    // wait disarm fencing completion to SF
     //
 
     fencing = FENCING_NONE;
@@ -1134,7 +1137,7 @@ script_service_do_set_pool_state(
     }
     else 
     {
-        if (sf->SF_access == FALSE)
+        if (stc_is_available() == FALSE)
         {
             log_message(MTC_LOG_WARNING, "SC: (%s) SF_access is FALSE.\n", __func__);
             r->retval = MTC_ERROR_SC_STATEFILE_ACCESS;
@@ -1166,7 +1169,7 @@ script_service_do_set_pool_state(
         }
         else 
         {
-            if (sf->SF_access == FALSE)
+            if (stc_is_available() == FALSE)
             {
                 log_message(MTC_LOG_WARNING, "SC: (%s) SF_access is FALSE.\n", __func__);
                 r->retval = MTC_ERROR_SC_STATEFILE_ACCESS;
@@ -1251,7 +1254,7 @@ do_set_clear_excluded_sub(
     }
     else 
     {
-        if (sf->SF_access == FALSE)
+        if (stc_is_available() == FALSE)
         {
             log_message(MTC_LOG_WARNING, "SC: (%s) SF_access is FALSE.\n", __func__);
             ret = MTC_ERROR_SC_STATEFILE_ACCESS;
@@ -1290,7 +1293,7 @@ do_set_clear_excluded_sub(
         }
         else 
         {
-            if (sf->SF_access == FALSE)
+            if (stc_is_available() == FALSE)
             {
                 log_message(MTC_LOG_WARNING, "SC: (%s) SF_access is FALSE.\n", __func__);
                 ret = MTC_ERROR_SC_STATEFILE_ACCESS;

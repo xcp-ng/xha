@@ -36,6 +36,7 @@
 //
 //
 
+#include "state_checker.h"
 #define _GNU_SOURCE
 #include <assert.h>
 #include <errno.h>
@@ -330,15 +331,14 @@ sf_initialize0()
     // used as a template to initialize SF object
 
     sfobj.modified_mask = SF_MODIFIED_MASK_NONE;
-    sfobj.ctl.enable_SF_write = FALSE;
-    sfobj.ctl.enable_SF_read = FALSE;
+    stc_set_is_enabled(FALSE);
     for (host = 0; host < MAX_HOST_NUM; host++)
     {
         sfobj.time_last_SF[host] = -1;
     }
     lm_initialize_lm_fields(&sfobj);
     bzero(&sfobj.master, sizeof(sfobj.master));
-    sfobj.SF_access = FALSE;
+    stc_set_is_available(FALSE);
     sfobj.SF_corrupted = FALSE;
     MTC_HOSTMAP_INIT_RESET(sfobj.excluded);
     MTC_HOSTMAP_INIT_RESET(sfobj.sfdomain);
@@ -359,7 +359,12 @@ sf_initialize0()
         sfobj.raw[host].time_since_xapi_restart = -1;
     }
 
-    sfobj.latency = sfobj.latency_max = sfobj.latency_min = -1;
+    stc_set_latency(&(struct Latency)
+    {
+        .latest_ms = -1,
+        .min_ms = -1,
+        .max_ms = -1,
+    });
 
     sfobj.fencing = FENCING_ARMED;
 
@@ -493,7 +498,6 @@ sfthread(
     void *ignore)
 {
     MTC_CLOCK last, now, target;
-    PCOM_DATA_SF psf;
     MTC_BOOLEAN readable, writable;
     MTC_STATUS status;
     MTC_BOOLEAN read_once = FALSE;
@@ -536,10 +540,7 @@ sfthread(
         }
         sf_unlock();
 
-        com_writer_lock(sf_object, (void **) &psf);
-        writable = psf->ctl.enable_SF_write;
-        readable = psf->ctl.enable_SF_read;
-        com_writer_unlock(sf_object);
+        writable = readable = stc_is_enabled();
 
         //  Now it's time to start this cycle of State-File access
 
@@ -581,7 +582,7 @@ sfthread(
                 {
                     print_status = PSTATUS_SUCCESS;
                     log_message(MTC_LOG_NOTICE,
-                                "HA daemon successfuly started acceesing the State-File.\n");
+                                "HA daemon successfully started acceesing the State-File.\n");
                 }
                 break;
 
@@ -723,7 +724,7 @@ readsf()
         sleep(1);
     }
     
-    //  State-File is sccessfully read, or the attempt failed after retries.
+    //  State-File is successfully read, or the attempt failed after retries.
     //  Update SF objects.
 
     com_reader_lock(sm_object, (void **) &psm);
@@ -789,7 +790,7 @@ readsf()
                 psf->time_last_SF[host_index] = sfvar.hoststat[host_index].updateclock;
             }
 
-            //  version 1.1 Collect SM-phase and commited weight of the other hosts
+            //  version 1.1 Collect SM-phase and committed weight of the other hosts
             if (host_index == _my_index)
             {
                 psf->sm_phase[host_index] = psm->phase;
@@ -804,27 +805,33 @@ readsf()
 
         // latency
 
-        psf->latency = _max(sfvar.readlatency.last, sfvar.writelatency.last);
-        
-        max = _max(sfvar.readlatency.max, sfvar.writelatency.max);
-        min = _min(sfvar.readlatency.min, sfvar.writelatency.min);
-
-        if (max > psf->latency_max)
         {
-            psf->latency_max = max;
-        }
-        
-        if (psf->latency_min < 0 || min < psf->latency_min)
-        {
-            psf->latency_min = min;
-        }
+            struct Latency latency;
+            stc_get_latency(&latency);
+            latency.latest_ms = _max(sfvar.readlatency.last, sfvar.writelatency.last);
+            
+            max = _max(sfvar.readlatency.max, sfvar.writelatency.max);
+            min = _min(sfvar.readlatency.min, sfvar.writelatency.min);
 
-        sfvar.readlatency.max = sfvar.writelatency.max = -1;
-        sfvar.readlatency.min = sfvar.writelatency.min = -1;
+            if (max > latency.max_ms)
+            {
+                latency.max_ms = max;
+            }
+            
+            if (latency.min_ms < 0 || min < latency.min_ms)
+            {
+                latency.min_ms = min;
+            }
+
+            sfvar.readlatency.max = sfvar.writelatency.max = -1;
+            sfvar.readlatency.min = sfvar.writelatency.min = -1;
+            stc_set_latency(&latency);
+        }
 
         //  SF_access
         sf_lock();
-        psf->SF_access = sfvar.SF_access = TRUE;
+        sfvar.SF_access = TRUE;
+        stc_set_is_available(sfvar.SF_access);
         sf_unlock();
 
         //  master
@@ -883,7 +890,8 @@ readsf()
         }
 
         sf_lock();
-        psf->SF_access = sfvar.SF_access = FALSE;
+        sfvar.SF_access = FALSE;
+        stc_set_is_available(sfvar.SF_access);
         sfvar.interval.accelerate_count = 0;
         sfvar.interval.ms = _t2 * 1000;
         sf_unlock();
@@ -942,7 +950,7 @@ write_hostspecific()
     MTC_HOSTMAP_COPY(phost->data.hbdomain, phb->hbdomain);
     MTC_HOSTMAP_COPY(phost->data.sfdomain, psf->sfdomain);
 
-    //  version 1.1 Propagate SM-phase and commited weight to
+    //  version 1.1 Propagate SM-phase and committed weight to
     //  the other hosts
     phost->data.sm_phase = psf->sm_phase[_my_index] = psm->phase;
     phost->data.weight = psf->weight[_my_index] = psm->commited_weight;
@@ -969,7 +977,7 @@ write_hostspecific()
 
     // starting
 
-    phost->data.starting = psf->ctl.starting;
+    phost->data.starting = stc_is_starting();
 
     // release reader_locks
     com_reader_unlock(xapimon_object);
@@ -992,7 +1000,8 @@ write_hostspecific()
         }
 
         sf_lock();
-        psf->SF_access = sfvar.SF_access = FALSE;
+        sfvar.SF_access = FALSE;
+        stc_set_is_available(sfvar.SF_access);
         sfvar.interval.accelerate_count = 0;
         sfvar.interval.ms = _t2 * 1000;
         sf_unlock();

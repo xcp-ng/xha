@@ -98,7 +98,7 @@ PMTC_S8 monthnames[] = {
 //  Initialize logging utility.
 //
 //
-//  paramaters
+//  parameters
 //
 //  return value
 //    0: success
@@ -146,7 +146,7 @@ MTC_S32 log_initialize()
 //    }
 //
 //
-//  paramaters
+//  parameters
 //
 //  return value
 //
@@ -175,7 +175,7 @@ void log_reopen()
 //  Terminate logging utility.
 //
 //
-//  paramaters
+//  parameters
 //
 //  return value
 //
@@ -204,9 +204,9 @@ void log_terminate()
 //  Log a message
 //
 //
-//  paramaters
+//  parameters
 //      priority - log priority value
-//                 The addtional flags, MTC_LOG_PRIVATELOG and/or
+//                 The additional flags, MTC_LOG_PRIVATELOG and/or
 //                 MTC_LOG_SYSLOG is also valid.
 //
 //                 If MTC_LOG_PRIVATELOG flag is set, the message will log to
@@ -282,7 +282,7 @@ void log_message(MTC_S32 priority, PMTC_S8 fmt, ...)
 //  Log binary data
 //
 //
-//  paramaters
+//  parameters
 //      priority - only MTC_LOG_PRIVATE_LOG flag is valid.  The other flags
 //                 are ignored.
 //      data - pointer to the data to be dumped
@@ -410,7 +410,7 @@ log_logmask(void)
 //
 //  ENVIRONMENT:
 //
-//      -rdynamic linker option is required to print funcition name to the log.
+//      -rdynamic linker option is required to print function name to the log.
 //
 //
 
@@ -497,7 +497,7 @@ log_status(
 //
 //      Issue fsync() for log file.
 //
-//  paramaters
+//  parameters
 //
 //      none
 //
@@ -533,7 +533,7 @@ log_fsync()
 //
 //      Log thread ID.
 //
-//  paramaters
+//  parameters
 //
 //      Thread name.
 //

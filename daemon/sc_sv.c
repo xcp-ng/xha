@@ -32,8 +32,6 @@
 //
 //   
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <sys/select.h>
 #include <string.h>
 #include <unistd.h>
@@ -42,7 +40,6 @@
 #include <sys/un.h>
 #include <errno.h>
 #include <pthread.h>
-#include <signal.h>
 #include <assert.h>
 
 
@@ -224,7 +221,7 @@ create_sockets(void)
 
         if ((sc_listening_socket[i] = socket(PF_UNIX, SOCK_STREAM, 0)) < 0)
         {
-            log_internal(MTC_LOG_ERR, "SC: cannnot create socket for %s. (sys %d)\n", sockname_list[i], errno);
+            log_internal(MTC_LOG_ERR, "SC: cannot create socket for %s. (sys %d)\n", sockname_list[i], errno);
             goto error_return;
         }
 
@@ -232,7 +229,7 @@ create_sockets(void)
 
         if (bind(sc_listening_socket[i], (struct sockaddr *)&listening_socket_addr, sizeof(listening_socket_addr)) < 0)
         {
-            log_internal(MTC_LOG_ERR, "SC: cannnot bind socket for %s. (sys %d)\n", sockname_list[i], errno);
+            log_internal(MTC_LOG_ERR, "SC: cannot bind socket for %s. (sys %d)\n", sockname_list[i], errno);
             goto error_return;
         }
 
@@ -240,7 +237,7 @@ create_sockets(void)
 
         if (listen(sc_listening_socket[i], 5) == -1)
         {
-            log_internal(MTC_LOG_ERR, "SC: cannnot listen socket for %s. (sys %d)\n", sockname_list[i], errno);
+            log_internal(MTC_LOG_ERR, "SC: cannot listen socket for %s. (sys %d)\n", sockname_list[i], errno);
             goto error_return;
         }
     }

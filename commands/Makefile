@@ -4,6 +4,7 @@
 
 TARGET_DIR=commands
 DEFMAKE=default-debug.mk
+
 include ../$(DEFMAKE)
 
 TARGET  += $(OBJDIR)/calldaemon

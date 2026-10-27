@@ -55,7 +55,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <errno.h>
 #include <assert.h>
 
 
@@ -69,9 +68,7 @@
 #include "mtcerrno.h"
 #include "log.h"
 #include "script.h"
-#include "sm.h"
 #include "statefile.h"
-#include "hostweight.h"
 
 //
 //
@@ -474,7 +471,7 @@ script_call_daemon(
 //  FORMAL PARAMETERS:
 //
 //      dst - output string
-//      src - imput string
+//      src - input string
 //      len - max length
 //          
 //  RETURN VALUE:

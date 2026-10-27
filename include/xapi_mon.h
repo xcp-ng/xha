@@ -5,6 +5,9 @@
 #ifndef XAPI_MON_H
 #define XAPI_MON_H (1)    // Set flag indicating this file was included
 
+#include <pthread.h>
+#include "mtctypes.h"
+
 //
 //      Copyright (c) Stratus Technologies Bermuda Ltd., 2008.
 //      All Rights Reserved. Unpublished rights reserved

@@ -38,10 +38,7 @@
 
 #define _GNU_SOURCE
 #include <assert.h>
-#include <errno.h>
 #include <pthread.h>
-#include <signal.h>
-#include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -56,14 +53,6 @@
 #include "mtctypes.h"
 #define MTC_NEED_ERROR_TABLE
 #include "mtcerrno.h"
-#include "log.h"
-#include "com.h"
-#include "config.h"
-#include "sm.h"
-#include "xapi_mon.h"
-#include "watchdog.h"
-#include "xha.h"
-#include "statefile.h"
 
 int
 status_to_exit(
